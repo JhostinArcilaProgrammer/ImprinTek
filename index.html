@@ -1,0 +1,1484 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprintek Sistema de Impresión v1.0</title>
+    <!-- Tailwind CSS para diseño moderno -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --paper-width: 21.59cm;  /* Carta estándar (8.5 pulgadas) */
+            --paper-height: 27.94cm; /* Carta estándar (11 pulgadas) */
+        }
+
+        body {
+            background-color: #0f172a;
+            font-family: 'Inter', system-ui, sans-serif;
+            color: #1e293b;
+        }
+
+        /* Contenedor visual de CADA hoja en pantalla */
+        .print-page {
+            width: var(--paper-width);
+            height: var(--paper-height);
+            background: white;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+            margin: 0 auto 2rem auto;
+            user-select: none;
+            flex-shrink: 0;
+        }
+
+        /* Indicador de número de página en pantalla (no se imprime) */
+        .page-indicator {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 60;
+            color: #94a3b8;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .page-indicator-content {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.5rem;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.375rem;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.15);
+        }
+
+        /* Ocultar interfaz al momento de enviar a imprimir y forzar visibilidad del lienzo */
+        @media print {
+            html, body { 
+                background: white !important; 
+                height: auto !important;
+                overflow: visible !important;
+                display: block !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            #sidebar, .no-print, .selection-box, .resize-handle, .page-indicator, #btnAddFreePage { 
+                display: none !important; 
+            }
+            #print-page-wrapper { 
+                transform: none !important;
+                position: static !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                display: block !important;
+            }
+            .print-page { 
+                box-shadow: none !important; 
+                margin: 0 !important;
+                border: none !important;
+                transform: none !important;
+                position: relative !important;
+                left: 0 !important;
+                top: 0 !important;
+                page-break-after: always;
+                page-break-inside: avoid;
+            }
+            .print-page:last-child {
+                page-break-after: auto;
+            }
+            main { 
+                padding: 0 !important; 
+                display: block !important; 
+                overflow: visible !important; 
+                height: auto !important;
+            }
+        }
+
+        /* Líneas de corte estilo PowerPoint */
+        .guideline-vertical {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 0;
+            border-left: 1px dashed #94a3b8;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        .guideline-horizontal {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 0;
+            border-top: 1px dashed #94a3b8;
+            z-index: 5;
+            pointer-events: none;
+        }
+
+        /* Elementos fotográficos */
+        .photo-item {
+            position: absolute;
+            z-index: 10;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: outline 0.15s ease;
+        }
+
+        .free-item {
+            position: absolute;
+            z-index: 10;
+            cursor: move;
+            touch-action: none;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        .free-item.selected {
+            outline: 1px dashed #94a3b8;
+        }
+
+        /* Puntos de control - Modo Libre Avanzado */
+        .handle { position: absolute; z-index: 30; }
+        
+        /* Escala */
+        .handle-scale { width: 10px; height: 10px; background-color: white; border: 1px solid #94a3b8; border-radius: 50%; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .handle-scale.nw { top: -5px; left: -5px; cursor: nwse-resize; }
+        .handle-scale.ne { top: -5px; right: -5px; cursor: nesw-resize; }
+        .handle-scale.sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+        .handle-scale.se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+        .handle-scale.n { top: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+        .handle-scale.s { bottom: -5px; left: calc(50% - 5px); cursor: ns-resize; }
+        .handle-scale.e { top: calc(50% - 5px); right: -5px; cursor: ew-resize; }
+        .handle-scale.w { top: calc(50% - 5px); left: -5px; cursor: ew-resize; }
+
+        /* Rotación */
+        .handle-rotate { width: 12px; height: 12px; background-color: #22c55e; border: 1px solid white; border-radius: 50%; top: -25px; left: calc(50% - 6px); cursor: crosshair; box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+        .rotate-line { position: absolute; width: 1px; height: 15px; background-color: #94a3b8; top: -15px; left: 50%; pointer-events: none; z-index: 29; }
+
+        /* Recorte */
+        .handle-crop { background-color: #1e293b; border-radius: 1px; }
+        .handle-crop.nw { top: -2px; left: -2px; width: 16px; height: 16px; clip-path: polygon(0 0, 100% 0, 100% 4px, 4px 4px, 4px 100%, 0 100%); cursor: nwse-resize; }
+        .handle-crop.ne { top: -2px; right: -2px; width: 16px; height: 16px; clip-path: polygon(0 0, 100% 0, 100% 100%, calc(100% - 4px) 100%, calc(100% - 4px) 4px, 0 4px); cursor: nesw-resize; }
+        .handle-crop.sw { bottom: -2px; left: -2px; width: 16px; height: 16px; clip-path: polygon(0 0, 4px 0, 4px calc(100% - 4px), 100% calc(100% - 4px), 100% 100%, 0 100%); cursor: nesw-resize; }
+        .handle-crop.se { bottom: -2px; right: -2px; width: 16px; height: 16px; clip-path: polygon(100% 0, 100% 100%, 0 100%, 0 calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 0); cursor: nwse-resize; }
+        .handle-crop.n { top: -2px; left: calc(50% - 8px); width: 16px; height: 4px; cursor: ns-resize; }
+        .handle-crop.s { bottom: -2px; left: calc(50% - 8px); width: 16px; height: 4px; cursor: ns-resize; }
+        .handle-crop.e { top: calc(50% - 8px); right: -2px; width: 4px; height: 16px; cursor: ew-resize; }
+        .handle-crop.w { top: calc(50% - 8px); left: -2px; width: 4px; height: 16px; cursor: ew-resize; }
+
+        /* Contenedor de controles que se muestra solo al seleccionar */
+        .handles-wrapper { display: none; width: 100%; height: 100%; position: absolute; top: 0; left: 0; pointer-events: none; z-index: 20; }
+        .handles-wrapper > * { pointer-events: auto; }
+        .free-item.selected .handles-wrapper { display: block; }
+        
+        /* Caja de Selección múltiple */
+        .selection-box-overlay {
+            position: absolute;
+            border: 1px solid rgba(37, 99, 235, 0.8);
+            background-color: rgba(37, 99, 235, 0.2);
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        @media print {
+            .photo-item, .free-item { box-shadow: none; outline: none !important; }
+            .handle, .rotate-line { display: none !important; }
+        }
+
+        .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
+        .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
+    </style>
+    <style id="dynamic-print-css"></style>
+</head>
+<body class="h-screen flex flex-col md:flex-row overflow-hidden bg-slate-900 text-slate-100">
+
+    <!-- PANEL DE CONTROL IZQUIERDO -->
+    <aside id="sidebar" class="w-full md:w-96 bg-white text-slate-800 shadow-2xl h-full flex flex-col z-20 border-r border-slate-200 overflow-hidden flex-shrink-0">
+        
+        <!-- Encabezado -->
+        <div class="p-5 bg-gradient-to-r from-blue-700 via-indigo-700 to-blue-900 text-white shrink-0">
+            <h1 class="text-xl font-bold flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Estudio de Impresión
+            </h1>
+            <p class="text-blue-200 text-xs mt-1">Soporte Libre (Canva/PPT) + Grilla Exacta</p>
+        </div>
+
+        <!-- TABS DE MODO -->
+        <div class="flex border-b border-slate-200 bg-slate-100 p-1 shrink-0">
+            <button id="tabGridBtn" onclick="switchMode('grid')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Modo Grilla
+            </button>
+            <button id="tabFreeBtn" onclick="switchMode('free')" class="flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+                Modo Libre
+            </button>
+        </div>
+
+        <div class="p-5 flex-1 overflow-y-auto space-y-6 bg-slate-50">
+            
+            <!-- SECCIÓN: IMÁGENES -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+                <h2 class="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider flex justify-between items-center">
+                    <span>1. Catálogo de Fotografías</span>
+                </h2>
+                <div id="image-list-container" class="space-y-3 mb-3"></div>
+                <label class="w-full py-2 border-2 border-dashed border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-xs font-bold flex items-center justify-center gap-2 cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
+                    Cargar Fotografía(s)
+                    <!-- Atributo 'multiple' permite seleccionar varios archivos de golpe -->
+                    <input type="file" multiple accept="image/*" class="hidden" onchange="handleGlobalFileUpload(event)">
+                </label>
+            </div>
+
+            <!-- CONTROLES MODO GRILLA -->
+            <div id="gridControlsSection" class="space-y-5">
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">2. Dimensiones y Cuadrícula</h2>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Formatos Predefinidos</label>
+                        <select id="presetSelect" class="w-full p-2 border border-slate-300 rounded-md text-xs focus:ring-2 focus:ring-blue-500 bg-slate-50">
+                            <option value="3,4">Carnet Clásico (3 x 4 cm)</option>
+                            <option value="4,4">Pasaporte (4 x 4 cm)</option>
+                            <option value="5,5">Visa/Pasaporte Int. (5 x 5 cm)</option>
+                            <option value="9,5">Tarjeta Presentación (9 x 5 cm)</option>
+                            <option value="10,15">Postal Estándar (10 x 15 cm)</option>
+                            <option value="custom">-- Personalizado --</option>
+                        </select>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Ancho (cm)</label>
+                            <input type="number" id="imgWidth" value="3" step="0.1" min="1" class="w-full p-2 border border-slate-300 rounded-md text-xs text-center">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Alto (cm)</label>
+                            <input type="number" id="imgHeight" value="4" step="0.1" min="1" class="w-full p-2 border border-slate-300 rounded-md text-xs text-center">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-xs font-semibold text-slate-600 mb-1">Espacio</label>
+                            <input type="number" id="imgGap" value="0.5" step="0.1" min="0" class="w-full p-2 border border-slate-300 rounded-md text-xs text-center">
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div>
+                            <span class="block text-[11px] font-semibold text-slate-800">Forzar Medidas Exactas</span>
+                            <span class="block text-[10px] text-slate-500">Deforma la imagen</span>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" id="toggleStretch" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
+                            <label for="toggleStretch" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 space-y-3">
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Columnas Max</label>
+                                <select id="gridColsSelect" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50"><option value="auto">Auto</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option></select>
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Filas Max</label>
+                                <select id="gridRowsSelect" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50"><option value="auto">Auto</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] font-semibold text-slate-600 mb-1">Dirección de Secuencia</label>
+                            <select id="fillDirection" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50"><option value="cols">Por Columnas (↓)</option><option value="rows">Por Filas (→)</option></select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3">
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">3. Posición de la Grilla</h2>
+                    <div class="grid grid-cols-3 gap-1 p-2 bg-slate-100 rounded-lg border border-slate-200 w-max mx-auto">
+                        <button class="align-btn w-10 h-10 flex items-start justify-start p-1 bg-white border border-slate-300 rounded" data-align="tl" onclick="setAlignment('tl')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-start justify-center p-1 bg-white border border-slate-300 rounded" data-align="tc" onclick="setAlignment('tc')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-start justify-end p-1 bg-white border border-slate-300 rounded" data-align="tr" onclick="setAlignment('tr')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-center justify-start p-1 bg-white border border-slate-300 rounded" data-align="ml" onclick="setAlignment('ml')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-center justify-center p-1 bg-white border border-slate-300 rounded ring-2 ring-blue-500 bg-blue-50" data-align="mc" onclick="setAlignment('mc')"><div class="w-3.5 h-3.5 bg-blue-600 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-center justify-end p-1 bg-white border border-slate-300 rounded" data-align="mr" onclick="setAlignment('mr')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-end justify-start p-1 bg-white border border-slate-300 rounded" data-align="bl" onclick="setAlignment('bl')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-end justify-center p-1 bg-white border border-slate-300 rounded" data-align="bc" onclick="setAlignment('bc')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                        <button class="align-btn w-10 h-10 flex items-end justify-end p-1 bg-white border border-slate-300 rounded" data-align="br" onclick="setAlignment('br')"><div class="w-3.5 h-3.5 bg-slate-400 rounded-sm pointer-events-none"></div></button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONTROLES MODO LIBRE -->
+            <div id="freeControlsSection" class="space-y-4 hidden">
+                <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-xl text-indigo-900 text-xs space-y-2">
+                    <div class="font-bold flex items-center gap-1.5 text-indigo-800">
+                        <svg class="w-4 h-4 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        Instrucciones Modo Libre
+                    </div>
+                    <ul class="list-disc list-inside space-y-1 text-slate-600 text-[11px]">
+                        <li>Haz clic en <strong>"Añadir al Lienzo"</strong>.</li>
+                        <li>Arrastra para mover libremente.</li>
+                        <li>Escala y Rota con los controles visuales.</li>
+                        <li>Activa <strong>Recortar</strong> para ajustar márgenes.</li>
+                        <li>Usa <strong>Eliminar</strong> bajo una página para quitarla.</li>
+                        <li>Usa <strong>Ctrl+C / Ctrl+V / Supr</strong>.</li>
+                    </ul>
+                </div>
+
+                <div id="selectedElementTools" class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-3 opacity-50 pointer-events-none transition-opacity">
+                    <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex justify-between">
+                        <span>Ajustes Foto Seleccionada</span>
+                        <span id="selectedDimensionsText" class="text-blue-600 font-mono text-[10px]"></span>
+                    </h2>
+
+                    <div class="flex items-center justify-between bg-slate-50 p-2 rounded border border-slate-200">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-700 hover:text-blue-600 transition-colors">
+                            <input type="checkbox" id="toggleCropMode" onchange="toggleCropUI(this.checked)" class="rounded text-blue-600 focus:ring-blue-500 w-4 h-4 cursor-pointer">
+                            Modo Recortar
+                        </label>
+                        <div class="flex items-center gap-1">
+                            <label class="text-[10px] text-slate-500 font-bold">Rotación:</label>
+                            <input type="number" id="objAngle" oninput="updateSelectedAngle(this.value)" class="w-14 p-1 border rounded text-[10px] text-center bg-white" placeholder="0°">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="alignFreeObject('center-h')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px] font-semibold">Centrar Horiz.</button>
+                        <button onclick="alignFreeObject('center-v')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px] font-semibold">Centrar Vert.</button>
+                        <button onclick="duplicateFreeObject()" class="py-1.5 px-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[11px] font-semibold">Duplicar</button>
+                        <button onclick="deleteFreeObject()" class="py-1.5 px-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-[11px] font-semibold">Eliminar</button>
+                    </div>
+
+                    <div class="flex gap-2 items-center bg-slate-50 p-2 rounded border border-slate-200">
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Ancho (cm)</label>
+                            <input type="number" id="freeItemWidth" step="0.1" oninput="updateSelectedSize('w', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs text-center bg-white">
+                        </div>
+                        <div class="flex-1">
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Alto (cm)</label>
+                            <input type="number" id="freeItemHeight" step="0.1" oninput="updateSelectedSize('h', this.value)" class="w-full p-1.5 border border-slate-300 rounded text-xs text-center bg-white">
+                        </div>
+                        <div class="flex-none text-center px-1">
+                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Página</label>
+                            <span id="objPageIndicator" class="text-xs font-bold text-blue-600 block mt-1.5">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- CONFIGURACIÓN DE PAPEL -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Configuración de Papel</h2>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Hoja</label>
+                        <select id="paperSize" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50">
+                            <option value="carta">Carta (21.59 x 27.94 cm)</option>
+                            <option value="oficio">Oficio (21.6 x 33.0 cm)</option>
+                            <option value="a4">A4 (21.0 x 29.7 cm)</option>
+                            <option value="a3">A3 (29.7 x 42.0 cm)</option>
+                            <option value="custom">-- Personalizado --</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-semibold text-slate-600 mb-1">Orientación</label>
+                        <select id="orientation" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50">
+                            <option value="portrait">Vertical</option>
+                            <option value="landscape">Horizontal</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div id="customPaperGroup" class="hidden flex gap-2 pt-2 border-t border-slate-100">
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Ancho (cm)</label>
+                        <input type="number" id="customPaperW" value="21.59" step="0.1" class="w-full p-1.5 border border-slate-300 rounded text-xs text-center bg-yellow-50 focus:ring-2 focus:ring-yellow-400">
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1">Alto (cm)</label>
+                        <input type="number" id="customPaperH" value="27.94" step="0.1" class="w-full p-1.5 border border-slate-300 rounded text-xs text-center bg-yellow-50 focus:ring-2 focus:ring-yellow-400">
+                    </div>
+                </div>
+            </div>
+
+            <!-- OPÇÕES DE IMPRESIÓN -->
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
+                <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Opciones de Impresión</h2>
+                
+                <div id="fillToggleContainer" class="flex items-center justify-between">
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-800">Autocompletar Hojas</span>
+                        <span class="block text-[11px] text-slate-500">Repite catálogo en la página</span>
+                    </div>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" id="toggleFill" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
+                        <label for="toggleFill" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-between pt-2 border-t border-slate-100">
+                    <div>
+                        <span class="block text-xs font-semibold text-slate-800">Líneas de Corte (Guías)</span>
+                        <span class="block text-[11px] text-slate-500">Diseño cruzado tipo plantilla</span>
+                    </div>
+                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" id="toggleLines" checked class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
+                        <label for="toggleLines" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-5 bg-white border-t border-slate-200 shrink-0">
+            <button id="btnClearAll" class="w-full mb-3 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2.5 px-4 rounded-xl transition-colors flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h12" />
+                </svg>
+                Limpiar todo
+            </button>
+            <button id="btnPrint" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-transform transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Imprimir Documento
+            </button>
+        </div>
+    </aside>
+
+    <main class="flex-1 bg-slate-900 p-4 md:p-8 overflow-y-auto relative" id="mainScrollArea">
+        <div id="print-page-wrapper" class="flex flex-col items-center pb-20"></div>
+
+        <button id="btnAddFreePage" onclick="addFreeModePage()" class="hidden mx-auto mt-4 mb-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-transform transform hover:-translate-y-0.5 items-center gap-2">
+            + Añadir Nueva Página Libre
+        </button>
+
+        <div id="empty-state" class="fixed inset-0 ml-0 md:ml-96 flex flex-col items-center justify-center text-slate-400 z-0 pointer-events-none">
+            <div class="bg-slate-800 p-8 rounded-2xl flex flex-col items-center shadow-xl border border-slate-700">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mb-4 opacity-50 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <p class="text-lg font-bold text-slate-300">Lienzo Vacío</p>
+                <p class="text-sm text-slate-500 mt-1">Agrega fotos a la izquierda para comenzar</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // ESTADO GLOBAL
+        let imageIdCounter = 0;
+        let imagesData = [];
+        let appMode = 'grid'; 
+        
+        // ESTADO MODO LIBRE Y SELECCIÓN MULTIPLE
+        let freeObjects = []; 
+        let selectedFreeObjIds = []; // Array para permitir selección múltiple
+        let freeObjIdCounter = 0;
+        let freePagesCount = 1;
+        let isGlobalCropMode = false;
+        let clipboard = []; // Portapapeles múltiple
+        let currentAlign = 'mc';
+
+        // HISTORIAL PARA DESHACER (Ctrl + Z)
+        let historyStack = [];
+        let historyIndex = -1;
+
+        // REFERENCIAS DOM
+        const listContainer = document.getElementById('image-list-container');
+        const emptyState = document.getElementById('empty-state');
+        const printWrapper = document.getElementById('print-page-wrapper');
+        const btnAddFreePage = document.getElementById('btnAddFreePage');
+        const inWidth = document.getElementById('imgWidth');
+        const inHeight = document.getElementById('imgHeight');
+        const inGap = document.getElementById('imgGap');
+        const presetSelect = document.getElementById('presetSelect');
+        const paperSizeSelect = document.getElementById('paperSize');
+        const orientationSelect = document.getElementById('orientation');
+        const toggleLines = document.getElementById('toggleLines');
+        const btnClearAll = document.getElementById('btnClearAll');
+
+        // INICIALIZACIÓN
+        saveState(); // Guardar estado inicial vacío
+        
+        // EVENTOS DOM GLOBALES
+        paperSizeSelect.addEventListener('change', (e) => {
+            const customGroup = document.getElementById('customPaperGroup');
+            if(e.target.value === 'custom') customGroup.classList.remove('hidden');
+            else customGroup.classList.add('hidden');
+            updateCanvas();
+        });
+        document.getElementById('customPaperW').addEventListener('input', updateCanvas);
+        document.getElementById('customPaperH').addEventListener('input', updateCanvas);
+        orientationSelect.addEventListener('change', updateCanvas);
+        toggleLines.addEventListener('change', updateCanvas);
+        
+        presetSelect.addEventListener('change', (e) => {
+            if (e.target.value !== 'custom') {
+                const [w, h] = e.target.value.split(',');
+                inWidth.value = w;
+                inHeight.value = h;
+                updateCanvas();
+            }
+        });
+        ['imgWidth', 'imgHeight', 'imgGap', 'gridColsSelect', 'gridRowsSelect', 'fillDirection', 'toggleFill', 'toggleStretch'].forEach(id => {
+            document.getElementById(id).addEventListener('change', updateCanvas);
+        });
+
+        // FUNCIONES DE CONTROL PRINCIPAL Y ESTADO
+        function saveState() {
+            // Si hicimos cambios después de deshacer, borramos el futuro divergente
+            if (historyIndex < historyStack.length - 1) {
+                historyStack = historyStack.slice(0, historyIndex + 1);
+            }
+            historyStack.push({
+                objects: JSON.parse(JSON.stringify(freeObjects)),
+                pages: freePagesCount
+            });
+            // Mantener máximo 30 estados para no saturar memoria
+            if (historyStack.length > 30) historyStack.shift();
+            else historyIndex++;
+        }
+
+        function undo() {
+            if (historyIndex > 0) {
+                historyIndex--;
+                const state = historyStack[historyIndex];
+                freeObjects = JSON.parse(JSON.stringify(state.objects));
+                freePagesCount = state.pages;
+                
+                // Limpiar selecciones que ya no existan
+                selectedFreeObjIds = selectedFreeObjIds.filter(id => freeObjects.some(o => o.id === id));
+                
+                updateCanvas();
+                showToast("Deshacer ↩");
+            } else {
+                showToast("No hay más acciones para deshacer");
+            }
+        }
+
+        function clearAll() {
+            const hasContent = imagesData.length > 0 || freeObjects.length > 0 || freePagesCount > 1;
+            if (hasContent && !window.confirm('¿Deseas limpiar todas las fotografías, páginas y elementos del documento?')) return;
+
+            imagesData = [];
+            freeObjects = [];
+            selectedFreeObjIds = [];
+            clipboard = [];
+            freePagesCount = 1;
+            imageIdCounter = 0;
+            freeObjIdCounter = 0;
+            historyStack = [];
+            historyIndex = -1;
+            saveState();
+            renderImageList();
+            updateCanvas();
+            showToast('Documento limpio.');
+        }
+
+        function switchMode(mode) {
+            appMode = mode;
+            const gridSection = document.getElementById('gridControlsSection');
+            const freeSection = document.getElementById('freeControlsSection');
+            const fillToggleContainer = document.getElementById('fillToggleContainer');
+
+            if (mode === 'grid') {
+                document.getElementById('tabGridBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm flex items-center justify-center gap-1.5";
+                document.getElementById('tabFreeBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5";
+                gridSection.classList.remove('hidden');
+                freeSection.classList.add('hidden');
+                fillToggleContainer.classList.remove('hidden');
+                btnAddFreePage.style.display = 'none';
+            } else {
+                document.getElementById('tabFreeBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm flex items-center justify-center gap-1.5";
+                document.getElementById('tabGridBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5";
+                freeSection.classList.remove('hidden');
+                gridSection.classList.add('hidden');
+                fillToggleContainer.classList.add('hidden');
+                btnAddFreePage.style.display = 'flex';
+                // NOTA: Se eliminó la conversión automática de la grilla para evitar conflictos al subir una foto y pasar a modo libre manual.
+            }
+            renderImageList();
+            updateCanvas();
+        }
+
+        function setAlignment(align) {
+            currentAlign = align;
+            document.querySelectorAll('.align-btn').forEach(btn => {
+                const innerDiv = btn.querySelector('div');
+                if(btn.dataset.align === align) {
+                    btn.classList.add('ring-2', 'ring-blue-500', 'bg-blue-50');
+                    innerDiv.classList.replace('bg-slate-400', 'bg-blue-600');
+                } else {
+                    btn.classList.remove('ring-2', 'ring-blue-500', 'bg-blue-50');
+                    if(innerDiv.classList.contains('bg-blue-600')) innerDiv.classList.replace('bg-blue-600', 'bg-slate-400');
+                }
+            });
+            updateCanvas();
+        }
+
+        // GESTIÓN DE CATÁLOGO (IMÁGENES) MULTIPLE
+        function handleGlobalFileUpload(event) {
+            const files = event.target.files;
+            if (!files || files.length === 0) return;
+
+            Array.from(files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    // Si existe un espacio vacío lo usamos, si no, creamos uno nuevo
+                    let emptyImg = imagesData.find(img => img.dataUrl === null);
+                    if (emptyImg) {
+                        emptyImg.dataUrl = e.target.result;
+                    } else {
+                        imagesData.push({ id: imageIdCounter++, dataUrl: e.target.result, copies: 1 });
+                    }
+                    renderImageList();
+                    updateCanvas();
+                };
+                reader.readAsDataURL(file);
+            });
+            // Resetea el input para permitir volver a subir el mismo archivo después
+            event.target.value = ''; 
+        }
+
+        function removeImage(id) {
+            imagesData = imagesData.filter(img => img.id !== id);
+            renderImageList();
+            updateCanvas();
+        }
+
+        function handleCopiesChange(id, value) {
+            const imgObj = imagesData.find(img => img.id === id);
+            if (imgObj) {
+                imgObj.copies = Math.max(1, parseInt(value) || 1);
+                updateCanvas();
+            }
+        }
+
+        function renderImageList() {
+            listContainer.innerHTML = '';
+            imagesData.forEach((img) => {
+                const card = document.createElement('div');
+                card.className = "bg-white p-3 rounded-lg border border-slate-200 relative group transition-all shadow-sm flex gap-3 items-center";
+                
+                const delBtn = `<button type="button" onclick="removeImage(${img.id})" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs shadow-md hover:bg-red-600 transition-colors z-10">✕</button>`;
+                
+                const thumbContent = img.dataUrl 
+                    ? `<img src="${img.dataUrl}" class="w-full h-full object-cover rounded-md" />`
+                    : `<svg class="w-6 h-6 text-slate-400 m-auto mt-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`;
+                
+                // Corrección Crítica: Se usa el ID en lugar del Base64 gigante para evitar romper el DOM o causar clics dobles.
+                const addToFreeBtn = (appMode === 'free' && img.dataUrl) 
+                    ? `<button type="button" onclick="addPhotoToFreeCanvasById(${img.id})" class="w-full py-1.5 text-[11px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold rounded flex items-center justify-center gap-1 mt-2 transition-colors shadow-sm">+ Añadir al Lienzo Libre</button>` : '';
+
+                card.innerHTML = `
+                    ${delBtn}
+                    <div class="w-16 h-16 bg-slate-100 rounded-md overflow-hidden flex-shrink-0 border border-slate-200">${thumbContent}</div>
+                    <div class="flex-1 flex flex-col justify-center">
+                        <div class="flex items-center justify-between bg-slate-50 p-1.5 rounded border border-slate-100">
+                            <label class="text-[11px] text-slate-600 font-medium">Copias (Grilla):</label>
+                            <input type="number" min="1" value="${img.copies}" onchange="handleCopiesChange(${img.id}, this.value)" class="w-12 p-1 border border-slate-300 rounded text-xs text-center focus:ring-1 focus:ring-blue-500 bg-white">
+                        </div>
+                        ${addToFreeBtn}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        // MOTOR DE RENDERIZADO COMÚN
+        function getPaperDimensions() {
+            const sp = paperSizeSelect.value;
+            const isL = orientationSelect.value === 'landscape';
+            let w, h;
+            if (sp === 'custom') {
+                w = parseFloat(document.getElementById('customPaperW').value) || 21.59;
+                h = parseFloat(document.getElementById('customPaperH').value) || 27.94;
+            } else {
+                const pd = { carta: {w:21.59, h:27.94}, oficio: {w:21.6, h:33}, a4: {w:21, h:29.7}, a3: {w:29.7, h:42} };
+                w = pd[sp].w; h = pd[sp].h;
+            }
+            return isL ? { w:h, h:w } : { w, h };
+        }
+
+        function createPageDOM(pageIndex, totalPages) {
+            const pageEl = document.createElement('div');
+            pageEl.className = 'print-page';
+            pageEl.dataset.page = pageIndex;
+            if (totalPages > 1 || appMode === 'free') {
+                const ind = document.createElement('div');
+                ind.className = 'page-indicator no-print';
+                const indicatorContent = document.createElement('span');
+                indicatorContent.className = 'page-indicator-content';
+                const pageLabel = document.createElement('span');
+                pageLabel.textContent = `Página ${pageIndex + 1}`;
+                indicatorContent.appendChild(pageLabel);
+
+                if (appMode === 'free') {
+                    const deletePageButton = document.createElement('button');
+                    deletePageButton.type = 'button';
+                    deletePageButton.className = 'delete-page-control text-red-400 hover:text-red-300 hover:underline';
+                    deletePageButton.textContent = 'Eliminar';
+                    deletePageButton.title = 'Eliminar esta página';
+                    deletePageButton.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        deleteFreeModePage(pageIndex);
+                    });
+                    indicatorContent.appendChild(deletePageButton);
+                }
+
+                ind.appendChild(indicatorContent);
+                pageEl.appendChild(ind);
+            }
+            return pageEl;
+        }
+
+        function updateCanvas() {
+            printWrapper.innerHTML = '';
+            const paper = getPaperDimensions();
+            document.documentElement.style.setProperty('--paper-width', `${paper.w}cm`);
+            document.documentElement.style.setProperty('--paper-height', `${paper.h}cm`);
+            document.getElementById('dynamic-print-css').innerHTML = `@page { size: ${paper.w}cm ${paper.h}cm; margin: 0; }`;
+            const showLines = toggleLines.checked;
+
+            if (appMode === 'grid') renderGridMode(paper, showLines);
+            else renderFreeMode(paper, showLines);
+        }
+
+        // MODO GRILLA
+        function renderGridMode(paper, showLines) {
+            let sequence = [];
+            imagesData.forEach(img => {
+                if (img.dataUrl) for(let i=0; i<img.copies; i++) sequence.push(img.dataUrl);
+            });
+
+            if (sequence.length === 0) {
+                emptyState.style.display = 'flex';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            const w = parseFloat(inWidth.value) || 3;
+            const h = parseFloat(inHeight.value) || 4;
+            const gap = parseFloat(inGap.value) || 0;
+            const fillPage = document.getElementById('toggleFill').checked;
+            const fillDir = document.getElementById('fillDirection').value;
+            const stretchImage = document.getElementById('toggleStretch').checked;
+            const safeMargin = 1.0; 
+
+            let maxCols = Math.floor((paper.w - safeMargin + gap) / (w + gap));
+            let maxRows = Math.floor((paper.h - safeMargin + gap) / (h + gap));
+            
+            const reqCols = document.getElementById('gridColsSelect').value;
+            const reqRows = document.getElementById('gridRowsSelect').value;
+            if (reqCols !== 'auto') maxCols = Math.min(maxCols, parseInt(reqCols));
+            if (reqRows !== 'auto') maxRows = Math.min(maxRows, parseInt(reqRows));
+
+            if (maxCols < 1 || maxRows < 1) {
+                showToast("Dimensiones exceden la hoja. Revisa márgenes.", true);
+                return;
+            }
+
+            const itemsPerPage = maxCols * maxRows;
+            let finalImages = fillPage ? Array.from({length: itemsPerPage}, (_, i) => sequence[i % sequence.length]) : sequence;
+            const totalPages = Math.ceil(finalImages.length / itemsPerPage);
+
+            for(let p = 0; p < totalPages; p++) {
+                const pageEl = createPageDOM(p, totalPages);
+                const linesLayer = document.createElement('div');
+                linesLayer.className = 'absolute inset-0 z-0 pointer-events-none';
+                const photoGrid = document.createElement('div');
+                photoGrid.className = 'absolute inset-0 z-10 pointer-events-none';
+
+                const pageImages = finalImages.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+                const actualCols = Math.min(pageImages.length, maxCols);
+                const actualRows = Math.ceil(pageImages.length / maxCols);
+
+                const gridW = (actualCols * w) + (actualCols > 1 ? (actualCols - 1) * gap : 0);
+                const gridH = (actualRows * h) + (actualRows > 1 ? (actualRows - 1) * gap : 0);
+
+                let startX = (paper.w - gridW) / 2;
+                let startY = (paper.h - gridH) / 2;
+                if (currentAlign.includes('l')) startX = safeMargin / 2;
+                else if (currentAlign.includes('r')) startX = paper.w - gridW - (safeMargin / 2);
+                if (currentAlign.startsWith('t')) startY = safeMargin / 2;
+                else if (currentAlign.startsWith('b')) startY = paper.h - gridH - (safeMargin / 2);
+
+                let uniqueX = new Set(), uniqueY = new Set();
+
+                pageImages.forEach((src, index) => {
+                    let r, c;
+                    if (fillDir === 'cols') { c = Math.floor(index / maxRows); r = index % maxRows; }
+                    else { r = Math.floor(index / maxCols); c = index % maxCols; }
+
+                    const posX = startX + c * (w + gap);
+                    const posY = startY + r * (h + gap);
+
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.className = 'photo-item';
+                    img.style.width = `${w}cm`; img.style.height = `${h}cm`;
+                    img.style.left = `${posX}cm`; img.style.top = `${posY}cm`;
+                    img.style.objectFit = stretchImage ? 'fill' : 'cover';
+
+                    photoGrid.appendChild(img);
+                    uniqueX.add(posX.toFixed(3)); uniqueX.add((posX + w).toFixed(3));
+                    uniqueY.add(posY.toFixed(3)); uniqueY.add((posY + h).toFixed(3));
+                });
+
+                if (showLines) {
+                    uniqueX.forEach(x => { const l = document.createElement('div'); l.className = 'guideline-vertical'; l.style.left = `${x}cm`; linesLayer.appendChild(l); });
+                    uniqueY.forEach(y => { const l = document.createElement('div'); l.className = 'guideline-horizontal'; l.style.top = `${y}cm`; linesLayer.appendChild(l); });
+                }
+
+                pageEl.appendChild(linesLayer);
+                pageEl.appendChild(photoGrid);
+                printWrapper.appendChild(pageEl);
+            }
+        }
+
+        // MODO LIBRE - DOM Y ACTUALIZACIÓN EN VIVO (EVITA RECARGAS CONSTANTES)
+        function updateSelectionDOM() {
+            document.querySelectorAll('.free-item').forEach(el => {
+                const id = parseInt(el.dataset.id);
+                if (selectedFreeObjIds.includes(id)) el.classList.add('selected');
+                else el.classList.remove('selected');
+            });
+            updateSelectedToolsUI();
+        }
+
+        function toggleCropUI(checked) {
+            isGlobalCropMode = checked;
+            updateCanvas(); // En este caso si requiere recarga para cambiar la apariencia de las manijas
+        }
+
+        function addFreeModePage() {
+            freePagesCount++;
+            updateCanvas();
+            saveState();
+            showToast(`Página añadida.`);
+            setTimeout(() => document.getElementById('mainScrollArea').scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 100);
+        }
+
+        function deleteFreeModePage(pageIndex) {
+            if (freePagesCount <= 1) {
+                showToast('Debe existir al menos una página.');
+                return;
+            }
+
+            const objectsOnPage = freeObjects.filter(obj => (obj.page || 0) === pageIndex);
+            if (objectsOnPage.length > 0 && !window.confirm(`La Página ${pageIndex + 1} contiene ${objectsOnPage.length} elemento(s). ¿Deseas eliminarla junto con su contenido?`)) {
+                return;
+            }
+
+            freeObjects = freeObjects
+                .filter(obj => (obj.page || 0) !== pageIndex)
+                .map(obj => ({
+                    ...obj,
+                    page: (obj.page || 0) > pageIndex ? obj.page - 1 : (obj.page || 0)
+                }));
+            selectedFreeObjIds = selectedFreeObjIds.filter(id => freeObjects.some(obj => obj.id === id));
+            freePagesCount--;
+            updateCanvas();
+            saveState();
+            showToast(`Página ${pageIndex + 1} eliminada.`);
+        }
+
+        function addPhotoToFreeCanvasById(id) {
+            const img = imagesData.find(i => i.id === id);
+            if (!img || !img.dataUrl) return;
+            
+            const w = parseFloat(inWidth.value) || 3.5;
+            const h = parseFloat(inHeight.value) || 4.5;
+            const offset = (freeObjects.length * 0.5) % 4;
+            
+            // CORRECCIÓN: Detectar la página actualmente más visible en pantalla
+            let targetPage = 0;
+            const pages = document.querySelectorAll('.print-page');
+            if (pages.length > 0) {
+                let maxVisibleArea = 0;
+                const viewportHeight = window.innerHeight;
+                pages.forEach((p, index) => {
+                    const rect = p.getBoundingClientRect();
+                    const visibleTop = Math.max(0, rect.top);
+                    const visibleBottom = Math.min(viewportHeight, rect.bottom);
+                    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+                    if (visibleHeight > maxVisibleArea) {
+                        maxVisibleArea = visibleHeight;
+                        targetPage = index;
+                    }
+                });
+            } else {
+                targetPage = Math.max(0, freePagesCount - 1);
+            }
+
+            const newObj = {
+                id: freeObjIdCounter++,
+                src: img.dataUrl,
+                cx: 2 + offset + w/2,
+                cy: 2 + offset + h/2,
+                w: w, h: h,
+                cropT: 0, cropR: 0, cropB: 0, cropL: 0,
+                angle: 0,
+                page: targetPage
+            };
+            freeObjects.push(newObj);
+            selectedFreeObjIds = [newObj.id]; // Seleccionar inmediatamente la nueva foto
+            
+            updateCanvas();
+            saveState();
+            showToast(`Foto añadida a Página ${targetPage + 1}`);
+
+            // Desplazar la vista automáticamente a la página donde se añadió
+            setTimeout(() => {
+                const pageEl = document.querySelector(`.print-page[data-page="${targetPage}"]`);
+                if (pageEl) pageEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }, 50);
+        }
+
+        function rotatePoint(x, y, angleDeg) {
+            const rad = angleDeg * Math.PI / 180;
+            return {
+                x: x * Math.cos(rad) - y * Math.sin(rad),
+                y: x * Math.sin(rad) + y * Math.cos(rad)
+            };
+        }
+
+        function renderFreeMode(paper, showLines) {
+            if (freeObjects.length > 0) {
+                const maxPageUsed = Math.max(...freeObjects.map(o => o.page || 0));
+                if (maxPageUsed + 1 > freePagesCount) freePagesCount = maxPageUsed + 1;
+            }
+
+            if (freeObjects.length === 0 && freePagesCount === 1) {
+                emptyState.style.display = 'flex';
+                return;
+            }
+            emptyState.style.display = 'none';
+
+            for(let p = 0; p < freePagesCount; p++) {
+                const pageEl = createPageDOM(p, freePagesCount);
+                const linesLayer = document.createElement('div');
+                linesLayer.className = 'absolute inset-0 z-0 pointer-events-none';
+                const freeCanvas = document.createElement('div');
+                freeCanvas.className = 'absolute inset-0 z-10 touch-none'; // Touch-none para evitar scroll de móvil arrastrando elementos
+                
+                let uniqueX = new Set(), uniqueY = new Set();
+                const objectsInPage = freeObjects.filter(obj => (obj.page || 0) === p);
+
+                objectsInPage.forEach(obj => {
+                    const isSelected = selectedFreeObjIds.includes(obj.id);
+                    const vW = obj.w - obj.cropL - obj.cropR;
+                    const vH = obj.h - obj.cropT - obj.cropB;
+                    const left = obj.cx - vW / 2;
+                    const top = obj.cy - vH / 2;
+
+                    const container = document.createElement('div');
+                    container.className = `free-item ${isSelected ? 'selected' : ''}`;
+                    container.dataset.id = obj.id;
+                    container.style.width = `${vW}cm`; container.style.height = `${vH}cm`;
+                    container.style.left = `${left}cm`; container.style.top = `${top}cm`;
+                    container.style.transform = `rotate(${obj.angle}deg)`;
+
+                    const imgMask = document.createElement('div');
+                    imgMask.style.cssText = 'width: 100%; height: 100%; overflow: hidden; position: relative; pointer-events: none;';
+                    
+                    const img = document.createElement('img');
+                    img.src = obj.src;
+                    img.style.cssText = `position: absolute; left: -${obj.cropL}cm; top: -${obj.cropT}cm; width: ${obj.w}cm; height: ${obj.h}cm; max-width: none; max-height: none; pointer-events: none;`;
+                    
+                    imgMask.appendChild(img);
+                    container.appendChild(imgMask);
+
+                    // --- CREACIÓN DE HERRAMIENTAS DIRECTAS EN DOM (Ocultas por CSS) ---
+                    const handlesWrapper = document.createElement('div');
+                    handlesWrapper.className = 'handles-wrapper no-print';
+
+                    const rotLine = document.createElement('div');
+                    rotLine.className = 'rotate-line';
+                    handlesWrapper.appendChild(rotLine);
+                    
+                    const rotHandle = document.createElement('div');
+                    rotHandle.className = 'handle handle-rotate';
+                    rotHandle.addEventListener('pointerdown', (e) => startRotating(e, obj, pageEl, container));
+                    handlesWrapper.appendChild(rotHandle);
+
+                    const handles = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
+                    handles.forEach(pos => {
+                        const h = document.createElement('div');
+                        h.className = `handle ${isGlobalCropMode ? 'handle-crop' : 'handle-scale'} ${pos}`;
+                        h.addEventListener('pointerdown', (e) => startResizingOrCropping(e, obj, pos, pageEl, container, img, isGlobalCropMode));
+                        handlesWrapper.appendChild(h);
+                    });
+                    container.appendChild(handlesWrapper);
+                    
+                    // --- EVENTO CLIC EN IMAGEN ---
+                    container.addEventListener('pointerdown', (e) => {
+                        // Evitar arrastrar si se hizo clic en un controlador de resize/rotación
+                        if (e.target.classList.contains('handle')) return; 
+                        
+                        e.stopPropagation(); // Evitar seleccionar el fondo
+                        if (!selectedFreeObjIds.includes(obj.id)) {
+                            // Selección simple vs Multi-selección
+                            if (e.shiftKey || e.ctrlKey || e.metaKey) selectedFreeObjIds.push(obj.id);
+                            else selectedFreeObjIds = [obj.id];
+                            updateSelectionDOM();
+                        }
+                        // Iniciar arrastre grupal
+                        startDragging(e, pageEl);
+                    });
+
+                    freeCanvas.appendChild(container);
+
+                    if (showLines) {
+                        uniqueX.add(left.toFixed(3)); uniqueX.add((left + vW).toFixed(3));
+                        uniqueY.add(top.toFixed(3)); uniqueY.add((top + vH).toFixed(3));
+                    }
+                });
+
+                if (showLines) {
+                    uniqueX.forEach(x => { const l = document.createElement('div'); l.className = 'guideline-vertical'; l.style.left = `${x}cm`; linesLayer.appendChild(l); });
+                    uniqueY.forEach(y => { const l = document.createElement('div'); l.className = 'guideline-horizontal'; l.style.top = `${y}cm`; linesLayer.appendChild(l); });
+                }
+
+                // EVENTO DE SELECCIÓN MULTIPLE (CAJA)
+                freeCanvas.addEventListener('pointerdown', (e) => {
+                    if (e.target === freeCanvas) { 
+                        startSelectionBox(e, freeCanvas, p);
+                    }
+                });
+
+                pageEl.appendChild(linesLayer);
+                pageEl.appendChild(freeCanvas);
+                printWrapper.appendChild(pageEl);
+            }
+            updateSelectedToolsUI();
+        }
+
+        // CONTROLADORES DE EVENTOS DEL RATÓN: ACCIÓN DIRECTA (NO RECARGA CANVA)
+        function startDragging(e, pageEl) {
+            const paper = getPaperDimensions();
+            const pageRect = pageEl.getBoundingClientRect();
+            const startMouseX = e.clientX, startMouseY = e.clientY;
+            
+            // Recolectar datos de inicio para TODOS los elementos seleccionados
+            const dragItems = selectedFreeObjIds.map(id => {
+                const obj = freeObjects.find(o => o.id === id);
+                const el = pageEl.querySelector(`[data-id="${id}"]`);
+                if(obj && el) return { obj, el, startCx: obj.cx, startCy: obj.cy };
+                return null;
+            }).filter(item => item !== null);
+
+            let moved = false;
+
+            function onPointerMove(ev) {
+                moved = true;
+                const dx = (ev.clientX - startMouseX) * (paper.w / pageRect.width);
+                const dy = (ev.clientY - startMouseY) * (paper.h / pageRect.height);
+                
+                dragItems.forEach(item => {
+                    item.obj.cx = item.startCx + dx;
+                    item.obj.cy = item.startCy + dy;
+                    
+                    // Manipulación Directa del DOM (Súper suave, no salta)
+                    const vW = item.obj.w - item.obj.cropL - item.obj.cropR;
+                    const vH = item.obj.h - item.obj.cropT - item.obj.cropB;
+                    item.el.style.left = `${item.obj.cx - vW/2}cm`;
+                    item.el.style.top = `${item.obj.cy - vH/2}cm`;
+                });
+            }
+            
+            function onPointerUp() {
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                if(moved) saveState();
+            }
+            
+            window.addEventListener('pointermove', onPointerMove, { passive: false });
+            window.addEventListener('pointerup', onPointerUp);
+        }
+
+        function startRotating(e, obj, pageEl, containerEl) {
+            e.stopPropagation();
+            const pageRect = pageEl.getBoundingClientRect();
+            const paper = getPaperDimensions();
+            const cmPerPxX = paper.w / pageRect.width;
+            const cmPerPxY = paper.h / pageRect.height;
+            let moved = false;
+            
+            function onPointerMove(ev) {
+                moved = true;
+                const dx = ((ev.clientX - pageRect.left) * cmPerPxX) - obj.cx;
+                const dy = ((ev.clientY - pageRect.top) * cmPerPxY) - obj.cy;
+                let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
+                if (ev.shiftKey) angle = Math.round(angle / 15) * 15;
+                
+                obj.angle = angle;
+                containerEl.style.transform = `rotate(${angle}deg)`;
+                
+                // Actualizar input del panel lateral si aplica
+                if(selectedFreeObjIds.length === 1) document.getElementById('objAngle').value = Math.round(angle);
+            }
+            
+            function onPointerUp() {
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                if(moved) saveState();
+            }
+            
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+        }
+
+        function startResizingOrCropping(e, obj, handle, pageEl, containerEl, imgEl, isCrop) {
+            e.stopPropagation();
+            const paper = getPaperDimensions();
+            const pageRect = pageEl.getBoundingClientRect();
+            const startObj = JSON.parse(JSON.stringify(obj));
+            const startVW = startObj.w - startObj.cropL - startObj.cropR;
+            const startVH = startObj.h - startObj.cropT - startObj.cropB;
+            let moved = false;
+
+            function onPointerMove(ev) {
+                moved = true;
+                const mouseX = (ev.clientX - pageRect.left) * (paper.w / pageRect.width);
+                const mouseY = (ev.clientY - pageRect.top) * (paper.h / pageRect.height);
+                
+                const localMouse = rotatePoint(mouseX - startObj.cx, mouseY - startObj.cy, -startObj.angle);
+                let newLocalL = -startVW / 2, newLocalR = startVW / 2;
+                let newLocalT = -startVH / 2, newLocalB = startVH / 2;
+
+                const MIN_SIZE = 0.5;
+                if (handle.includes('w')) newLocalL = Math.min(localMouse.x, newLocalR - MIN_SIZE);
+                if (handle.includes('e')) newLocalR = Math.max(localMouse.x, newLocalL + MIN_SIZE);
+                if (handle.includes('n')) newLocalT = Math.min(localMouse.y, newLocalB - MIN_SIZE);
+                if (handle.includes('s')) newLocalB = Math.max(localMouse.y, newLocalT + MIN_SIZE);
+
+                const newVW = newLocalR - newLocalL, newVH = newLocalB - newLocalT;
+
+                if (isCrop) {
+                    obj.cropL = Math.max(0, startObj.cropL + (newLocalL - (-startVW / 2)));
+                    obj.cropR = Math.max(0, startObj.cropR + ((startVW / 2) - newLocalR));
+                    obj.cropT = Math.max(0, startObj.cropT + (newLocalT - (-startVH / 2)));
+                    obj.cropB = Math.max(0, startObj.cropB + ((startVH / 2) - newLocalB));
+                    if (obj.cropL + obj.cropR >= obj.w) obj.cropR = obj.w - obj.cropL - MIN_SIZE;
+                    if (obj.cropT + obj.cropB >= obj.h) obj.cropB = obj.h - obj.cropT - MIN_SIZE;
+                } else {
+                    let scaleX = newVW / startVW, scaleY = newVH / startVH;
+                    if (handle.length === 2) { // Mantener proporción en esquinas
+                        const maxScale = Math.max(scaleX, scaleY);
+                        scaleX = maxScale; scaleY = maxScale;
+                        if (handle.includes('w')) newLocalL = newLocalR - (startVW * scaleX); else newLocalR = newLocalL + (startVW * scaleX);
+                        if (handle.includes('n')) newLocalT = newLocalB - (startVH * scaleY); else newLocalB = newLocalT + (startVH * scaleY);
+                    }
+                    obj.w = Math.max(MIN_SIZE, startObj.w * scaleX); obj.h = Math.max(MIN_SIZE, startObj.h * scaleY);
+                    obj.cropL = startObj.cropL * scaleX; obj.cropR = startObj.cropR * scaleX;
+                    obj.cropT = startObj.cropT * scaleY; obj.cropB = startObj.cropB * scaleY;
+                }
+
+                const globalShift = rotatePoint((newLocalL + newLocalR) / 2, (newLocalT + newLocalB) / 2, startObj.angle);
+                obj.cx = startObj.cx + globalShift.x; 
+                obj.cy = startObj.cy + globalShift.y;
+
+                // Actualizar DOM Directo
+                const vW = obj.w - obj.cropL - obj.cropR;
+                const vH = obj.h - obj.cropT - obj.cropB;
+                containerEl.style.width = `${vW}cm`;
+                containerEl.style.height = `${vH}cm`;
+                containerEl.style.left = `${obj.cx - vW / 2}cm`;
+                containerEl.style.top = `${obj.cy - vH / 2}cm`;
+                
+                imgEl.style.width = `${obj.w}cm`;
+                imgEl.style.height = `${obj.h}cm`;
+                imgEl.style.left = `-${obj.cropL}cm`;
+                imgEl.style.top = `-${obj.cropT}cm`;
+
+                if(selectedFreeObjIds.length === 1) updateSelectedToolsUI(); // Refrescar medidas en sidebar
+            }
+            
+            function onPointerUp() {
+                window.removeEventListener('pointermove', onPointerMove);
+                window.removeEventListener('pointerup', onPointerUp);
+                if(moved) saveState();
+            }
+            
+            window.addEventListener('pointermove', onPointerMove);
+            window.addEventListener('pointerup', onPointerUp);
+        }
+
+        // SELECCIÓN CON CAJA ARRASTRABLE
+        function startSelectionBox(e, freeCanvas, pageIndex) {
+            const pageRect = freeCanvas.getBoundingClientRect();
+            const startX = e.clientX;
+            const startY = e.clientY;
+            
+            const selBox = document.createElement('div');
+            selBox.className = 'selection-box-overlay';
+            freeCanvas.appendChild(selBox);
+
+            if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+                selectedFreeObjIds = [];
+                updateSelectionDOM();
+            }
+
+            function onMove(ev) {
+                const currentX = ev.clientX;
+                const currentY = ev.clientY;
+                
+                const left = Math.min(startX, currentX) - pageRect.left;
+                const top = Math.min(startY, currentY) - pageRect.top;
+                const width = Math.abs(currentX - startX);
+                const height = Math.abs(currentY - startY);
+                
+                selBox.style.left = `${left}px`;
+                selBox.style.top = `${top}px`;
+                selBox.style.width = `${width}px`;
+                selBox.style.height = `${height}px`;
+            }
+
+            function onUp() {
+                window.removeEventListener('pointermove', onMove);
+                window.removeEventListener('pointerup', onUp);
+                
+                const boxRect = selBox.getBoundingClientRect();
+                selBox.remove();
+
+                // Si fue solo un clic al fondo (caja sin tamaño), vaciamos selección
+                if (boxRect.width < 5 && boxRect.height < 5) {
+                    if (!e.shiftKey) selectedFreeObjIds = [];
+                    updateSelectionDOM();
+                    return;
+                }
+
+                // Detectar intersecciones
+                const newSelections = [];
+                freeObjects.filter(o => o.page === pageIndex).forEach(obj => {
+                    const el = freeCanvas.querySelector(`[data-id="${obj.id}"]`);
+                    if (el) {
+                        const elRect = el.getBoundingClientRect();
+                        const overlap = !(boxRect.right < elRect.left || 
+                                          boxRect.left > elRect.right || 
+                                          boxRect.bottom < elRect.top || 
+                                          boxRect.top > elRect.bottom);
+                        
+                        if (overlap && !selectedFreeObjIds.includes(obj.id)) {
+                            newSelections.push(obj.id);
+                        }
+                    }
+                });
+                
+                if (newSelections.length > 0) {
+                    selectedFreeObjIds.push(...newSelections);
+                }
+                updateSelectionDOM();
+            }
+            
+            window.addEventListener('pointermove', onMove);
+            window.addEventListener('pointerup', onUp);
+        }
+
+        // HERRAMIENTAS DE EDICIÓN MODO LIBRE (AJUSTADAS A MULTI-SELECCIÓN)
+        function updateSelectedToolsUI() {
+            const toolsContainer = document.getElementById('selectedElementTools');
+            
+            if (selectedFreeObjIds.length === 1) {
+                // Modo Edición Simple (1 foto)
+                toolsContainer.classList.remove('opacity-50', 'pointer-events-none');
+                const selectedObj = freeObjects.find(o => o.id === selectedFreeObjIds[0]);
+                
+                if (selectedObj) {
+                    const vW = selectedObj.w - selectedObj.cropL - selectedObj.cropR;
+                    const vH = selectedObj.h - selectedObj.cropT - selectedObj.cropB;
+                    document.getElementById('selectedDimensionsText').textContent = `${vW.toFixed(1)} x ${vH.toFixed(1)} cm`;
+                    document.getElementById('freeItemWidth').value = vW.toFixed(1);
+                    document.getElementById('freeItemHeight').value = vH.toFixed(1);
+                    document.getElementById('objPageIndicator').textContent = (selectedObj.page || 0) + 1;
+                    document.getElementById('toggleCropMode').checked = isGlobalCropMode;
+                    document.getElementById('objAngle').value = Math.round(selectedObj.angle) || 0;
+                    document.getElementById('freeItemWidth').disabled = false;
+                    document.getElementById('freeItemHeight').disabled = false;
+                }
+            } else if (selectedFreeObjIds.length > 1) {
+                // Modo Edición Múltiple (Bloquear dimensiones específicas para evitar conflictos, permitir mover/duplicar/borrar)
+                toolsContainer.classList.remove('opacity-50', 'pointer-events-none');
+                document.getElementById('selectedDimensionsText').textContent = `[${selectedFreeObjIds.length} ítems]`;
+                document.getElementById('freeItemWidth').value = '';
+                document.getElementById('freeItemHeight').value = '';
+                document.getElementById('freeItemWidth').disabled = true;
+                document.getElementById('freeItemHeight').disabled = true;
+                document.getElementById('objPageIndicator').textContent = '*';
+                document.getElementById('objAngle').value = '';
+            } else {
+                // Nada seleccionado
+                toolsContainer.classList.add('opacity-50', 'pointer-events-none');
+                document.getElementById('selectedDimensionsText').textContent = '';
+                document.getElementById('freeItemWidth').value = '';
+                document.getElementById('freeItemHeight').value = '';
+                document.getElementById('objPageIndicator').textContent = '-';
+                document.getElementById('toggleCropMode').checked = false;
+                document.getElementById('objAngle').value = '';
+            }
+        }
+
+        function updateSelectedAngle(val) {
+            const num = parseFloat(val);
+            if (selectedFreeObjIds.length === 1 && !isNaN(num)) { 
+                const selectedObj = freeObjects.find(o => o.id === selectedFreeObjIds[0]);
+                selectedObj.angle = num; 
+                updateCanvas(); 
+                saveState();
+            }
+        }
+
+        function updateSelectedSize(dimension, val) {
+            const num = parseFloat(val);
+            if (selectedFreeObjIds.length === 1 && !isNaN(num) && num > 0) {
+                const selectedObj = freeObjects.find(o => o.id === selectedFreeObjIds[0]);
+                const currentVW = selectedObj.w - selectedObj.cropL - selectedObj.cropR;
+                const currentVH = selectedObj.h - selectedObj.cropT - selectedObj.cropB;
+                if (dimension === 'w') { const s = num / currentVW; selectedObj.w *= s; selectedObj.cropL *= s; selectedObj.cropR *= s; }
+                if (dimension === 'h') { const s = num / currentVH; selectedObj.h *= s; selectedObj.cropT *= s; selectedObj.cropB *= s; }
+                updateCanvas();
+                saveState();
+            }
+        }
+
+        function alignFreeObject(type) {
+            if (selectedFreeObjIds.length === 0) return;
+            const paper = getPaperDimensions();
+            
+            selectedFreeObjIds.forEach(id => {
+                const obj = freeObjects.find(o => o.id === id);
+                if(obj) {
+                    if (type === 'center-h') obj.cx = paper.w / 2;
+                    if (type === 'center-v') obj.cy = paper.h / 2;
+                }
+            });
+            updateCanvas();
+            saveState();
+        }
+
+        function duplicateFreeObject() {
+            if (selectedFreeObjIds.length === 0) return;
+            const newSelection = [];
+            const toCopy = freeObjects.filter(o => selectedFreeObjIds.includes(o.id));
+            
+            toCopy.forEach(obj => {
+                const copy = JSON.parse(JSON.stringify(obj)); 
+                copy.id = freeObjIdCounter++;
+                copy.cx += 0.5; copy.cy += 0.5; // Offset visual ligero
+                freeObjects.push(copy);
+                newSelection.push(copy.id);
+            });
+            
+            selectedFreeObjIds = newSelection; // Seleccionar las copias
+            updateCanvas();
+            saveState();
+            showToast(toCopy.length > 1 ? "Elementos duplicados" : "Foto duplicada");
+        }
+
+        function deleteFreeObject() {
+            if (selectedFreeObjIds.length === 0) return;
+            freeObjects = freeObjects.filter(o => !selectedFreeObjIds.includes(o.id));
+            selectedFreeObjIds = [];
+            updateCanvas();
+            saveState();
+            showToast("Eliminado");
+        }
+        
+        // ATAJOS DE TECLADO GLOBALES
+        document.addEventListener('keydown', (e) => {
+            if (appMode === 'free') {
+                // Evitar atrapar teclas si estamos escribiendo en un input
+                if (e.target.tagName.toLowerCase() === 'input' || e.target.tagName.toLowerCase() === 'textarea') return;
+                
+                // Deshacer (Ctrl + Z o Cmd + Z)
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+                    e.preventDefault();
+                    undo();
+                    return;
+                }
+                
+                // Borrar
+                if (e.key === 'Delete' || e.key === 'Backspace') {
+                    e.preventDefault(); deleteFreeObject();
+                }
+                
+                // Copiar (Ctrl + C)
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'c') {
+                    const selected = freeObjects.filter(o => selectedFreeObjIds.includes(o.id));
+                    if (selected.length > 0) { 
+                        clipboard = JSON.parse(JSON.stringify(selected)); 
+                        showToast(selected.length > 1 ? "Elementos copiados" : "Foto copiada"); 
+                    }
+                }
+                
+                // Pegar (Ctrl + V)
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'v') {
+                    if (clipboard && clipboard.length > 0) {
+                        selectedFreeObjIds = []; // Limpiar para seleccionar lo nuevo
+                        clipboard.forEach(clip => {
+                            const newObj = { ...clip, id: freeObjIdCounter++, cx: clip.cx + 0.5, cy: clip.cy + 0.5 };
+                            freeObjects.push(newObj);
+                            selectedFreeObjIds.push(newObj.id);
+                        });
+                        updateCanvas();
+                        saveState();
+                        showToast(clipboard.length > 1 ? "Elementos pegados" : "Foto pegada");
+                    }
+                }
+
+                // Cortar (Ctrl + X)
+                if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'x') {
+                    const selected = freeObjects.filter(o => selectedFreeObjIds.includes(o.id));
+                    if (selected.length > 0) {
+                        clipboard = JSON.parse(JSON.stringify(selected)); // Copiamos
+                        deleteFreeObject(); // Esta función elimina y guarda estado automáticamente
+                        showToast(selected.length > 1 ? "Elementos cortados" : "Foto cortada");
+                    }
+                }
+            }
+        });
+
+        // UTILIDADES Y BOTONES FINALES
+        function showToast(message, isError = false) {
+            const toast = document.createElement('div');
+            toast.className = `fixed bottom-4 right-4 px-5 py-2.5 rounded-lg shadow-xl z-50 transition-all duration-300 transform translate-y-0 flex items-center gap-2 ${isError ? 'bg-red-600' : 'bg-emerald-600'} text-white text-xs font-semibold`;
+            toast.innerHTML = isError 
+                ? `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> ${message}`
+                : `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        document.getElementById('btnPrint').addEventListener('click', () => {
+            const hasImagesGrid = imagesData.some(img => img.dataUrl !== null);
+            const hasFreeObjects = freeObjects.length > 0;
+
+            if (appMode === 'grid' && !hasImagesGrid) { showToast("Sube al menos una fotografía para imprimir.", true); return; }
+            if (appMode === 'free' && !hasFreeObjects) { showToast("Añade fotos al lienzo antes de imprimir.", true); return; }
+            
+            try {
+                window.focus(); 
+                // Deseleccionar temporalmente para evitar imprimir líneas de selección
+                const tempSelection = [...selectedFreeObjIds];
+                selectedFreeObjIds = [];
+                updateSelectionDOM();
+                
+                setTimeout(() => { 
+                    window.print(); 
+                    // Restaurar selección post-impresión
+                    selectedFreeObjIds = tempSelection;
+                    updateSelectionDOM();
+                }, 200);
+            } catch(e) {
+                console.error(e); showToast("Usa Ctrl+P (o Cmd+P) para imprimir.", true);
+            }
+        });
+
+        btnClearAll.addEventListener('click', clearAll);
+
+    </script>
+</body>
+</html>
