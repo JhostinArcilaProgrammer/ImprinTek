@@ -70,6 +70,7 @@
             }
             #print-page-wrapper { 
                 transform: none !important;
+                zoom: 1 !important;
                 position: static !important;
                 margin: 0 !important;
                 padding: 0 !important;
@@ -429,14 +430,19 @@
         </div>
 
         <div class="p-5 bg-white border-t border-slate-200 shrink-0">
-            <button id="btnClearAll" class="w-full mb-3 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2.5 px-4 rounded-xl transition-colors flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div class="grid grid-cols-2 gap-2 mb-3">
+                <button id="btnNewProject" class="border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-1.5 px-2 rounded-lg text-[11px]">Nuevo</button>
+                <button id="btnOpenProject" class="border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-1.5 px-2 rounded-lg text-[11px]">Abrir</button>
+                <button id="btnSaveProject" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-2 rounded-lg text-[11px]">Guardar proyecto</button>
+            </div>
+            <button id="btnClearAll" class="w-full mb-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2 px-3 rounded-lg transition-colors flex justify-center items-center gap-2 text-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h12" />
                 </svg>
                 Limpiar todo
             </button>
-            <button id="btnPrint" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl shadow-lg transition-transform transform hover:-translate-y-0.5 flex justify-center items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button id="btnPrint" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg transition-transform transform hover:-translate-y-0.5 flex justify-center items-center gap-2 text-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
                 Imprimir Documento
@@ -445,6 +451,11 @@
     </aside>
 
     <main class="flex-1 bg-slate-900 p-4 md:p-8 overflow-y-auto relative" id="mainScrollArea">
+        <div class="fixed top-3 right-5 z-40 flex items-center gap-1 rounded-lg bg-slate-800/95 p-1 shadow-lg border border-slate-600 text-white no-print">
+            <button id="btnZoomOut" title="Alejar (Ctrl -)" class="w-7 h-7 rounded hover:bg-slate-700 text-lg leading-none">−</button>
+            <button id="btnZoomReset" title="Restablecer zoom (Ctrl 0)" class="min-w-14 px-1 h-7 rounded hover:bg-slate-700 text-[11px] font-bold">100%</button>
+            <button id="btnZoomIn" title="Acercar (Ctrl +)" class="w-7 h-7 rounded hover:bg-slate-700 text-lg leading-none">+</button>
+        </div>
         <div id="print-page-wrapper" class="flex flex-col items-center pb-20"></div>
 
         <button id="btnAddFreePage" onclick="addFreeModePage()" class="hidden mx-auto mt-4 mb-10 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-full shadow-lg transition-transform transform hover:-translate-y-0.5 items-center gap-2">
@@ -494,6 +505,10 @@
         const orientationSelect = document.getElementById('orientation');
         const toggleLines = document.getElementById('toggleLines');
         const btnClearAll = document.getElementById('btnClearAll');
+        let currentProjectName = '';
+        const PROJECT_SCHEMA_VERSION = 1;
+        let canvasZoom = 1;
+        const ZOOM_LEVELS = [0.5, 0.75, 1, 1.25, 1.5, 2];
 
         // INICIALIZACIÓN
         saveState(); // Guardar estado inicial vacío
@@ -571,6 +586,106 @@
             renderImageList();
             updateCanvas();
             showToast('Documento limpio.');
+        }
+
+        function collectProjectState() {
+            return {
+                schemaVersion: PROJECT_SCHEMA_VERSION,
+                fileName: currentProjectName,
+                savedAt: new Date().toISOString(),
+                settings: {
+                    mode: appMode,
+                    align: currentAlign,
+                    preset: presetSelect.value,
+                    imageWidth: inWidth.value,
+                    imageHeight: inHeight.value,
+                    imageGap: inGap.value,
+                    stretch: document.getElementById('toggleStretch').checked,
+                    gridCols: document.getElementById('gridColsSelect').value,
+                    gridRows: document.getElementById('gridRowsSelect').value,
+                    fillDirection: document.getElementById('fillDirection').value,
+                    fill: document.getElementById('toggleFill').checked,
+                    paperSize: paperSizeSelect.value,
+                    orientation: orientationSelect.value,
+                    customPaperW: document.getElementById('customPaperW').value,
+                    customPaperH: document.getElementById('customPaperH').value,
+                    lines: toggleLines.checked
+                },
+                images: imagesData,
+                freeObjects,
+                freePagesCount,
+                counters: { imageIdCounter, freeObjIdCounter }
+            };
+        }
+
+        function applyProjectState(project) {
+            if (!project || project.schemaVersion !== PROJECT_SCHEMA_VERSION) {
+                throw new Error('Versión de proyecto no compatible.');
+            }
+            const settings = project.settings || {};
+            const setValue = (id, value) => {
+                if (value !== undefined && document.getElementById(id)) document.getElementById(id).value = value;
+            };
+            const setChecked = (id, value) => {
+                if (value !== undefined && document.getElementById(id)) document.getElementById(id).checked = Boolean(value);
+            };
+
+            setValue('presetSelect', settings.preset);
+            setValue('imgWidth', settings.imageWidth);
+            setValue('imgHeight', settings.imageHeight);
+            setValue('imgGap', settings.imageGap);
+            setChecked('toggleStretch', settings.stretch);
+            setValue('gridColsSelect', settings.gridCols);
+            setValue('gridRowsSelect', settings.gridRows);
+            setValue('fillDirection', settings.fillDirection);
+            setChecked('toggleFill', settings.fill);
+            setValue('paperSize', settings.paperSize);
+            setValue('orientation', settings.orientation);
+            setValue('customPaperW', settings.customPaperW);
+            setValue('customPaperH', settings.customPaperH);
+            setChecked('toggleLines', settings.lines);
+
+            imagesData = Array.isArray(project.images) ? project.images : [];
+            freeObjects = Array.isArray(project.freeObjects) ? project.freeObjects : [];
+            freePagesCount = Math.max(1, Number(project.freePagesCount) || 1);
+            imageIdCounter = Number(project.counters?.imageIdCounter) || 0;
+            freeObjIdCounter = Number(project.counters?.freeObjIdCounter) || 0;
+            currentProjectName = project.fileName || '';
+            selectedFreeObjIds = [];
+            clipboard = [];
+            historyStack = [];
+            historyIndex = -1;
+            saveState();
+            const customGroup = document.getElementById('customPaperGroup');
+            customGroup.classList.toggle('hidden', paperSizeSelect.value !== 'custom');
+            switchMode(settings.mode === 'free' ? 'free' : 'grid');
+            setAlignment(settings.align || 'mc');
+            renderImageList();
+            updateCanvas();
+        }
+
+        async function saveProject() {
+            if (!window.imprintek) return showToast('La API de proyecto no está disponible.', true);
+            const result = await window.imprintek.saveProject(collectProjectState());
+            if (!result.canceled) {
+                currentProjectName = result.filePath;
+                showToast('Proyecto guardado.');
+            }
+        }
+
+        async function openProject() {
+            if (!window.imprintek) return showToast('La API de proyecto no está disponible.', true);
+            try {
+                const result = await window.imprintek.openProject();
+                if (!result.canceled) {
+                    applyProjectState(result.project);
+                    currentProjectName = result.filePath;
+                    showToast('Proyecto abierto.');
+                }
+            } catch (error) {
+                console.error(error);
+                showToast('No se pudo abrir el proyecto.', true);
+            }
         }
 
         function switchMode(mode) {
@@ -1478,6 +1593,43 @@
         });
 
         btnClearAll.addEventListener('click', clearAll);
+        document.getElementById('btnNewProject').addEventListener('click', clearAll);
+        document.getElementById('btnOpenProject').addEventListener('click', openProject);
+        document.getElementById('btnSaveProject').addEventListener('click', saveProject);
+
+        function updateCanvasZoom() {
+            printWrapper.style.zoom = String(canvasZoom);
+            document.getElementById('btnZoomReset').textContent = `${Math.round(canvasZoom * 100)}%`;
+        }
+
+        function changeCanvasZoom(direction) {
+            const currentIndex = ZOOM_LEVELS.indexOf(canvasZoom);
+            const nextIndex = Math.max(0, Math.min(ZOOM_LEVELS.length - 1, currentIndex + direction));
+            canvasZoom = ZOOM_LEVELS[nextIndex];
+            updateCanvasZoom();
+        }
+
+        document.getElementById('btnZoomOut').addEventListener('click', () => changeCanvasZoom(-1));
+        document.getElementById('btnZoomIn').addEventListener('click', () => changeCanvasZoom(1));
+        document.getElementById('btnZoomReset').addEventListener('click', () => {
+            canvasZoom = 1;
+            updateCanvasZoom();
+        });
+        document.addEventListener('keydown', (event) => {
+            if (!event.ctrlKey && !event.metaKey) return;
+            if (event.key === '+' || event.key === '=') {
+                event.preventDefault();
+                changeCanvasZoom(1);
+            } else if (event.key === '-') {
+                event.preventDefault();
+                changeCanvasZoom(-1);
+            } else if (event.key === '0') {
+                event.preventDefault();
+                canvasZoom = 1;
+                updateCanvasZoom();
+            }
+        });
+        updateCanvasZoom();
 
     </script>
 </body>

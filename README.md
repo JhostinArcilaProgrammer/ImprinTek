@@ -25,13 +25,16 @@ npm start
 npm run build:windows
 ```
 
+El instalador se genera con `electron-builder` en `dist/`. La aplicación comprueba actualizaciones automáticamente cuando está instalada y empaquetada.
+
+Para distribuir actualizaciones hay que publicar el instalador y sus archivos de metadatos en GitHub Releases o en un servidor compatible, y añadir una configuración `publish` al bloque `build` de `package.json`. El código no descarga actualizaciones durante `npm start` ni en modo desarrollo.
+
 ## Próximas etapas
 
-1. Guardar esta versión estable como referencia.
-2. Sustituir Tailwind CDN por una compilación local.
-3. Separar la interfaz, el estado y los motores de Grilla y Modo Libre.
-4. Diseñar persistencia de proyectos y configuraciones antes de elegir la base de datos.
+1. Sustituir Tailwind CDN por una compilación local.
+2. Separar la interfaz, el estado y los motores de Grilla y Modo Libre.
+3. Migrar el archivo `.imprintek` a un contenedor con SQLite e imágenes separadas si los proyectos crecen mucho.
 
 ## Modelo de proyecto previsto
 
-Un proyecto debería conservar la configuración de papel, orientación, medidas de impresión, catálogo de imágenes, elementos del lienzo, número de hojas y versión del formato de datos. Las imágenes podrán almacenarse como archivos asociados al proyecto o como recursos administrados por la aplicación; esta decisión se tomará junto con el diseño de persistencia.
+Los proyectos actuales usan archivos `.imprintek` versionados. Conservan la configuración de papel, orientación, medidas de impresión, catálogo de imágenes, elementos del lienzo, número de hojas y versión del formato de datos. Las imágenes se guardan como Data URL para mantener el proyecto portable y editable.

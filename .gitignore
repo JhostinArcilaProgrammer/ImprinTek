@@ -7,6 +7,3 @@ Thumbs.db
 .env
 .env.*
 !.env.example
-main.js
-package-lock.json
-package.json
