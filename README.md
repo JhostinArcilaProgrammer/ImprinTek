@@ -1,4 +1,4 @@
-# ImprenMax
+# Imprintek
 
 Aplicación de escritorio para preparar fotografías para impresión en modo grilla y modo libre.
 
