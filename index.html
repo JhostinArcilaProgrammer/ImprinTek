@@ -104,9 +104,10 @@
             top: 0;
             bottom: 0;
             width: 0;
-            border-left: 1px dashed #94a3b8;
-            z-index: 5;
+            border-left: var(--guide-line-width, 1px) var(--guide-line-style, dashed) var(--guide-line-color, #ef4444);
+            z-index: 25;
             pointer-events: none;
+            opacity: 1;
         }
 
         .guideline-horizontal {
@@ -114,9 +115,10 @@
             left: 0;
             right: 0;
             height: 0;
-            border-top: 1px dashed #94a3b8;
-            z-index: 5;
+            border-top: var(--guide-line-width, 1px) var(--guide-line-style, dashed) var(--guide-line-color, #ef4444);
+            z-index: 25;
             pointer-events: none;
+            opacity: 1;
         }
 
         /* Elementos fotográficos */
@@ -426,6 +428,29 @@
                         <label for="toggleLines" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
                     </div>
                 </div>
+
+                <div class="pt-3 border-t border-slate-100 space-y-3">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="guideColor" class="block text-[11px] font-semibold text-slate-600">Color</label>
+                        <input type="color" id="guideColor" value="#ef4444" class="w-12 h-8 rounded border border-slate-300 bg-white cursor-pointer p-1">
+                    </div>
+                    <div class="space-y-1">
+                        <div class="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                            <label for="guideWidth">Grosor</label>
+                            <span id="guideWidthValue" class="text-slate-700">1px</span>
+                        </div>
+                        <input type="range" id="guideWidth" min="1" max="6" value="1" class="w-full accent-red-500">
+                    </div>
+                    <div>
+                        <label for="guideStyle" class="block text-[11px] font-semibold text-slate-600 mb-1">Forma</label>
+                        <select id="guideStyle" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50">
+                            <option value="dashed">Punteada</option>
+                            <option value="dotted">Puntitos</option>
+                            <option value="solid">Sólida</option>
+                            <option value="double">Doble</option>
+                        </select>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -504,6 +529,9 @@
         const paperSizeSelect = document.getElementById('paperSize');
         const orientationSelect = document.getElementById('orientation');
         const toggleLines = document.getElementById('toggleLines');
+        const guideColor = document.getElementById('guideColor');
+        const guideWidth = document.getElementById('guideWidth');
+        const guideStyle = document.getElementById('guideStyle');
         const btnClearAll = document.getElementById('btnClearAll');
         let currentProjectName = '';
         const PROJECT_SCHEMA_VERSION = 1;
@@ -514,6 +542,17 @@
         saveState(); // Guardar estado inicial vacío
         
         // EVENTOS DOM GLOBALES
+        function applyGuideLineStyle() {
+            const lineColor = guideColor?.value || '#ef4444';
+            const lineWidth = Math.max(1, Number(guideWidth?.value) || 1);
+            const lineStyle = guideStyle?.value || 'dashed';
+            const widthValue = document.getElementById('guideWidthValue');
+            if (widthValue) widthValue.textContent = `${lineWidth}px`;
+            document.documentElement.style.setProperty('--guide-line-color', lineColor);
+            document.documentElement.style.setProperty('--guide-line-width', `${lineWidth}px`);
+            document.documentElement.style.setProperty('--guide-line-style', lineStyle);
+        }
+
         paperSizeSelect.addEventListener('change', (e) => {
             const customGroup = document.getElementById('customPaperGroup');
             if(e.target.value === 'custom') customGroup.classList.remove('hidden');
@@ -524,6 +563,9 @@
         document.getElementById('customPaperH').addEventListener('input', updateCanvas);
         orientationSelect.addEventListener('change', updateCanvas);
         toggleLines.addEventListener('change', updateCanvas);
+        guideColor.addEventListener('input', updateCanvas);
+        guideWidth.addEventListener('input', updateCanvas);
+        guideStyle.addEventListener('change', updateCanvas);
         
         presetSelect.addEventListener('change', (e) => {
             if (e.target.value !== 'custom') {
@@ -609,7 +651,10 @@
                     orientation: orientationSelect.value,
                     customPaperW: document.getElementById('customPaperW').value,
                     customPaperH: document.getElementById('customPaperH').value,
-                    lines: toggleLines.checked
+                    lines: toggleLines.checked,
+                    guideColor: guideColor.value,
+                    guideWidth: guideWidth.value,
+                    guideStyle: guideStyle.value
                 },
                 images: imagesData,
                 freeObjects,
@@ -644,6 +689,9 @@
             setValue('customPaperW', settings.customPaperW);
             setValue('customPaperH', settings.customPaperH);
             setChecked('toggleLines', settings.lines);
+            setValue('guideColor', settings.guideColor || '#ef4444');
+            setValue('guideWidth', settings.guideWidth || '1');
+            setValue('guideStyle', settings.guideStyle || 'dashed');
 
             imagesData = Array.isArray(project.images) ? project.images : [];
             freeObjects = Array.isArray(project.freeObjects) ? project.freeObjects : [];
@@ -759,6 +807,40 @@
             updateCanvas();
         }
 
+        function replaceImage(id) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.style.display = 'none';
+            input.onchange = (event) => {
+                const file = event.target.files && event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const imgObj = imagesData.find(img => img.id === id);
+                    if (!imgObj) return;
+                    imgObj.dataUrl = e.target.result;
+                    imgObj.copies = Math.max(1, imgObj.copies || 1);
+                    renderImageList();
+                    updateCanvas();
+                };
+                reader.readAsDataURL(file);
+                input.remove();
+            };
+            document.body.appendChild(input);
+            input.click();
+        }
+
+        function clearImage(id) {
+            const imgObj = imagesData.find(img => img.id === id);
+            if (!imgObj) return;
+            imgObj.dataUrl = null;
+            imgObj.copies = Math.max(1, imgObj.copies || 1);
+            renderImageList();
+            updateCanvas();
+        }
+
         function handleCopiesChange(id, value) {
             const imgObj = imagesData.find(img => img.id === id);
             if (imgObj) {
@@ -783,6 +865,12 @@
                 const addToFreeBtn = (appMode === 'free' && img.dataUrl) 
                     ? `<button type="button" onclick="addPhotoToFreeCanvasById(${img.id})" class="w-full py-1.5 text-[11px] bg-indigo-50 text-indigo-700 hover:bg-indigo-100 font-bold rounded flex items-center justify-center gap-1 mt-2 transition-colors shadow-sm">+ Añadir al Lienzo Libre</button>` : '';
 
+                const primaryAction = img.dataUrl
+                    ? `<button type="button" onclick="replaceImage(${img.id})" class="flex-1 py-1.5 text-[11px] bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded transition-colors shadow-sm">Reemplazar</button>`
+                    : `<button type="button" onclick="replaceImage(${img.id})" class="flex-1 py-1.5 text-[11px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded transition-colors shadow-sm">Cargar</button>`;
+
+                const clearAction = `<button type="button" onclick="clearImage(${img.id})" class="w-12 py-1.5 text-[11px] bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded transition-colors">Quitar</button>`;
+
                 card.innerHTML = `
                     ${delBtn}
                     <div class="w-16 h-16 bg-slate-100 rounded-md overflow-hidden flex-shrink-0 border border-slate-200">${thumbContent}</div>
@@ -790,6 +878,10 @@
                         <div class="flex items-center justify-between bg-slate-50 p-1.5 rounded border border-slate-100">
                             <label class="text-[11px] text-slate-600 font-medium">Copias (Grilla):</label>
                             <input type="number" min="1" value="${img.copies}" onchange="handleCopiesChange(${img.id}, this.value)" class="w-12 p-1 border border-slate-300 rounded text-xs text-center focus:ring-1 focus:ring-blue-500 bg-white">
+                        </div>
+                        <div class="flex gap-1 mt-2">
+                            ${primaryAction}
+                            ${clearAction}
                         </div>
                         ${addToFreeBtn}
                     </div>
@@ -846,6 +938,7 @@
         }
 
         function updateCanvas() {
+            applyGuideLineStyle();
             printWrapper.innerHTML = '';
             const paper = getPaperDimensions();
             document.documentElement.style.setProperty('--paper-width', `${paper.w}cm`);
@@ -898,7 +991,7 @@
             for(let p = 0; p < totalPages; p++) {
                 const pageEl = createPageDOM(p, totalPages);
                 const linesLayer = document.createElement('div');
-                linesLayer.className = 'absolute inset-0 z-0 pointer-events-none';
+                linesLayer.className = 'absolute inset-0 z-20 pointer-events-none';
                 const photoGrid = document.createElement('div');
                 photoGrid.className = 'absolute inset-0 z-10 pointer-events-none';
 
@@ -943,8 +1036,8 @@
                     uniqueY.forEach(y => { const l = document.createElement('div'); l.className = 'guideline-horizontal'; l.style.top = `${y}cm`; linesLayer.appendChild(l); });
                 }
 
-                pageEl.appendChild(linesLayer);
                 pageEl.appendChild(photoGrid);
+                pageEl.appendChild(linesLayer);
                 printWrapper.appendChild(pageEl);
             }
         }
@@ -1071,7 +1164,7 @@
             for(let p = 0; p < freePagesCount; p++) {
                 const pageEl = createPageDOM(p, freePagesCount);
                 const linesLayer = document.createElement('div');
-                linesLayer.className = 'absolute inset-0 z-0 pointer-events-none';
+                linesLayer.className = 'absolute inset-0 z-20 pointer-events-none';
                 const freeCanvas = document.createElement('div');
                 freeCanvas.className = 'absolute inset-0 z-10 touch-none'; // Touch-none para evitar scroll de móvil arrastrando elementos
                 
@@ -1160,8 +1253,8 @@
                     }
                 });
 
-                pageEl.appendChild(linesLayer);
                 pageEl.appendChild(freeCanvas);
+                pageEl.appendChild(linesLayer);
                 printWrapper.appendChild(pageEl);
             }
             updateSelectedToolsUI();
