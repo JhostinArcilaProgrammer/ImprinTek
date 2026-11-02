@@ -13,9 +13,122 @@
         }
 
         body {
-            background-color: #0f172a;
+            background-color: #f0d907;
             font-family: 'Inter', system-ui, sans-serif;
-            color: #1e293b;
+            color: #d78779;
+            font-size: 12px;
+        }
+
+        #sidebar {
+            width: min(20rem, 100%);
+            min-width: 0;
+            max-width: 22rem;
+        }
+
+        #sidebar > * {
+            min-width: 0;
+        }
+
+        #sidebar .flex > *,
+        #sidebar .grid > *,
+        #sidebar input,
+        #sidebar select,
+        #sidebar button {
+            box-sizing: border-box;
+            min-width: 0;
+            max-width: 100%;
+        }
+
+        #sidebar label {
+            overflow-wrap: anywhere;
+        }
+
+        #sidebar .photo-dimensions-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.5rem;
+        }
+
+        #sidebar .paper-settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            align-items: end;
+            gap: 0.5rem;
+        }
+
+        #sidebar .space-y-6 > * + *,
+        #sidebar .space-y-5 > * + *,
+        #sidebar .space-y-4 > * + *,
+        #sidebar .space-y-3 > * + * {
+            margin-top: 0.7rem !important;
+        }
+
+        #sidebar .p-5,
+        #sidebar .p-4,
+        #sidebar .p-3,
+        #sidebar .p-3\.5 {
+            padding: 0.7rem 0.8rem !important;
+        }
+
+        #sidebar .text-xl { font-size: 1.08rem !important; }
+        #sidebar .text-sm { font-size: 0.72rem !important; }
+        #sidebar .text-xs { font-size: 10px !important; }
+        #sidebar button,
+        #sidebar input,
+        #sidebar select,
+        #sidebar label,
+        #sidebar span {
+            font-size: inherit;
+        }
+
+        #sidebar .py-2,
+        #sidebar .py-1\.5,
+        #sidebar .py-2\.5 {
+            padding-top: 0.42rem !important;
+            padding-bottom: 0.42rem !important;
+        }
+
+        #sidebar .gap-2 { gap: 0.4rem !important; }
+        #sidebar .gap-3 { gap: 0.55rem !important; }
+        #sidebar .rounded-xl { border-radius: 0.75rem !important; }
+        #sidebar .rounded-lg { border-radius: 0.6rem !important; }
+        #sidebar .rounded-md { border-radius: 0.5rem !important; }
+        #sidebar .w-10 { width: 2.2rem !important; }
+        #sidebar .h-10 { height: 2.2rem !important; }
+
+        main {
+            padding: 0.7rem !important;
+        }
+
+        #print-page-wrapper {
+            padding-bottom: 0.6rem;
+        }
+
+        .image-catalog-scroll {
+            max-height: min(34vh, 280px);
+            min-height: 0;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            padding: 3px 6px 3px 2px;
+        }
+
+        .image-catalog-scroll::-webkit-scrollbar { width: 8px; }
+        .image-catalog-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 8px; }
+        .image-catalog-scroll::-webkit-scrollbar-track { background: #f1f5f9; }
+
+        .file-drop-overlay {
+            position: fixed;
+            inset: 10px;
+            z-index: 90;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 3px dashed #38bdf8;
+            border-radius: 16px;
+            background: rgba(15, 23, 42, 0.74);
+            color: #f8fafc;
+            pointer-events: none;
         }
 
         /* Contenedor visual de CADA hoja en pantalla */
@@ -188,12 +301,148 @@
             .handle, .rotate-line { display: none !important; }
         }
 
-        .toggle-checkbox:checked { right: 0; border-color: #2563eb; }
+        .toggle-checkbox { left: 0; transition: left 180ms ease, border-color 180ms ease; }
+        .toggle-checkbox:checked { left: calc(100% - 1.5rem); right: auto; border-color: #2563eb; }
         .toggle-checkbox:checked + .toggle-label { background-color: #2563eb; }
+        .toggle-checkbox:focus-visible + .toggle-label { box-shadow: 0 0 0 2px #93c5fd; }
+
+        @media (prefers-reduced-motion: reduce) {
+            .toggle-checkbox { transition: none; }
+        }
+
+        .image-editor-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.72);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            padding: 1rem;
+        }
+
+        .image-editor-panel {
+            width: min(1100px, 100%);
+            max-height: 92vh;
+            overflow: hidden;
+            background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+            border-radius: 1.5rem;
+            box-shadow: 0 28px 80px rgba(15, 23, 42, 0.42), 0 0 0 1px rgba(148, 163, 184, 0.4);
+            border: 1px solid rgba(148, 163, 184, 0.5);
+        }
+
+        .editor-preview-viewport {
+            position: relative;
+            overflow: hidden;
+            background: radial-gradient(circle at center, #0f172a 0%, #020617 100%);
+            min-height: 380px;
+            border-radius: 1rem;
+            border: 1px solid rgba(148, 163, 184, 0.25);
+            box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04), 0 12px 30px rgba(15, 23, 42, 0.25);
+            transition: box-shadow 0.2s ease;
+        }
+
+        .editor-preview-viewport.crop-active {
+            box-shadow: inset 0 0 0 2px rgba(96, 165, 250, 0.7);
+        }
+
+        .editor-preview-image {
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            max-width: 90%;
+            max-height: 72%;
+            transform-origin: center center;
+            box-shadow: 0 20px 40px rgba(15, 23, 42, 0.35);
+            border-radius: 0.75rem;
+            object-fit: contain;
+            user-select: none;
+            pointer-events: none;
+        }
+
+        .editor-vignette-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: radial-gradient(circle, transparent 42%, rgba(0, 0, 0, 0.1) 72%, rgba(0, 0, 0, 0.7) 100%);
+        }
+
+        .editor-crop-box {
+            position: absolute;
+            border: 2px solid rgba(96, 165, 250, 0.95);
+            background: rgba(96, 165, 250, 0.08);
+            box-shadow: inset 0 0 0 9999px rgba(15, 23, 42, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.12);
+            display: none;
+            cursor: move;
+            user-select: none;
+            pointer-events: auto;
+            border-radius: 0.25rem;
+        }
+
+        .editor-crop-box::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba(255, 255, 255, 0.22);
+            border-radius: 0.2rem;
+            pointer-events: none;
+        }
+
+        .crop-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: linear-gradient(180deg, #ffffff 0%, #e2e8f0 100%);
+            border: 2px solid #60a5fa;
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.36);
+            z-index: 3;
+        }
+
+        .crop-handle.nw { left: -6px; top: -6px; cursor: nwse-resize; }
+        .crop-handle.n { left: 50%; top: -6px; transform: translateX(-50%); cursor: ns-resize; }
+        .crop-handle.ne { right: -6px; top: -6px; cursor: nesw-resize; }
+        .crop-handle.e { right: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+        .crop-handle.se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+        .crop-handle.s { left: 50%; bottom: -6px; transform: translateX(-50%); cursor: ns-resize; }
+        .crop-handle.sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+        .crop-handle.w { left: -6px; top: 50%; transform: translateY(-50%); cursor: ew-resize; }
+
+        .modifier-scroll-panel {
+            max-height: 420px;
+            overflow-y: auto;
+            overflow-x: hidden;
+            padding: 0.75rem 0.5rem 0.75rem 0.5rem;
+            background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(241,245,249,0.95));
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            border-radius: 1rem;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.8), inset 0 0 0 1px rgba(148,163,184,0.08);
+        }
+
+        .modifier-scroll-panel::-webkit-scrollbar {
+            width: 9px;
+        }
+
+        .modifier-scroll-panel::-webkit-scrollbar-track {
+            background: rgba(148, 163, 184, 0.12);
+            border-radius: 9999px;
+        }
+
+        .modifier-scroll-panel::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, rgba(100, 116, 139, 0.8), rgba(71, 85, 105, 0.8));
+            border-radius: 9999px;
+            border: 2px solid rgba(255,255,255,0.7);
+        }
     </style>
     <style id="dynamic-print-css"></style>
 </head>
 <body class="h-screen flex flex-col md:flex-row overflow-hidden bg-slate-900 text-slate-100">
+    <div id="fileDropOverlay" class="file-drop-overlay hidden" aria-hidden="true">
+        <div class="rounded-xl border border-sky-300/40 bg-slate-900/90 px-6 py-5 text-center shadow-2xl">
+            <p class="text-lg font-bold">Suelta para cargar</p>
+            <p class="mt-1 text-sm text-slate-300">Puedes agregar una o varias imágenes</p>
+        </div>
+    </div>
 
     <!-- PANEL DE CONTROL IZQUIERDO -->
     <aside id="sidebar" class="w-full md:w-96 bg-white text-slate-800 shadow-2xl h-full flex flex-col z-20 border-r border-slate-200 overflow-hidden flex-shrink-0">
@@ -228,7 +477,7 @@
                 <h2 class="text-xs font-bold text-slate-800 mb-3 uppercase tracking-wider flex justify-between items-center">
                     <span>1. Catálogo de Fotografías</span>
                 </h2>
-                <div id="image-list-container" class="space-y-3 mb-3"></div>
+                <div id="image-list-container" class="image-catalog-scroll space-y-3 mb-3"></div>
                 <label class="w-full py-2 border-2 border-dashed border-blue-400 text-blue-600 rounded-lg hover:bg-blue-50 transition-colors text-xs font-bold flex items-center justify-center gap-2 cursor-pointer">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" /></svg>
                     Cargar Fotografía(s)
@@ -252,7 +501,7 @@
                             <option value="custom">-- Personalizado --</option>
                         </select>
                     </div>
-                    <div class="flex gap-2">
+                    <div class="photo-dimensions-grid">
                         <div class="flex-1">
                             <label class="block text-xs font-semibold text-slate-600 mb-1">Ancho (cm)</label>
                             <input type="number" id="imgWidth" value="3" step="0.1" min="1" class="w-full p-2 border border-slate-300 rounded-md text-xs text-center">
@@ -268,12 +517,46 @@
                     </div>
                     <div class="flex items-center justify-between pt-3 border-t border-slate-100">
                         <div>
+                            <span class="block text-[11px] font-semibold text-slate-800">Ajustar a toda la hoja</span>
+                            <span class="block text-[10px] text-slate-500">Mantiene proporción</span>
+                            <span id="fitToPageStatus" class="hidden mt-1 text-[10px] font-semibold text-blue-700" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" id="toggleFitToPage" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
+                            <label for="toggleFitToPage" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div>
+                            <span class="block text-[11px] font-semibold text-slate-800">Una foto por hoja</span>
+                            <span class="block text-[10px] text-slate-500">Centra y conserva las medidas configuradas</span>
+                            <span id="onePerPageStatus" class="hidden mt-1 text-[10px] font-semibold text-blue-700" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" id="toggleOnePerPage" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
+                            <label for="toggleOnePerPage" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div>
                             <span class="block text-[11px] font-semibold text-slate-800">Forzar Medidas Exactas</span>
                             <span class="block text-[10px] text-slate-500">Deforma la imagen</span>
+                            <span id="stretchStatus" class="hidden mt-1 text-[10px] font-semibold text-blue-700" role="status" aria-live="polite"></span>
                         </div>
                         <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
                             <input type="checkbox" id="toggleStretch" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
                             <label for="toggleStretch" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between pt-3 border-t border-slate-100">
+                        <div>
+                            <span class="block text-[11px] font-semibold text-slate-800">Autocompletar hojas</span>
+                            <span class="block text-[10px] text-slate-500">Completa las hojas y reparte las fotos equilibradamente</span>
+                            <span id="fillStatus" class="hidden mt-1 text-[10px] font-semibold text-blue-700" role="status" aria-live="polite"></span>
+                        </div>
+                        <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                            <input type="checkbox" id="toggleFill" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
+                            <label for="toggleFill" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
                         </div>
                     </div>
                     <div class="pt-3 border-t border-slate-100 space-y-3">
@@ -347,8 +630,9 @@
                     <div class="grid grid-cols-2 gap-2">
                         <button onclick="alignFreeObject('center-h')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px] font-semibold">Centrar Horiz.</button>
                         <button onclick="alignFreeObject('center-v')" class="py-1.5 px-2 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 text-[11px] font-semibold">Centrar Vert.</button>
+                        <button onclick="openImageEditor()" class="py-1.5 px-2 bg-violet-50 text-violet-700 hover:bg-violet-100 rounded text-[11px] font-semibold">Editar imagen</button>
                         <button onclick="duplicateFreeObject()" class="py-1.5 px-2 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded text-[11px] font-semibold">Duplicar</button>
-                        <button onclick="deleteFreeObject()" class="py-1.5 px-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-[11px] font-semibold">Eliminar</button>
+                        <button onclick="deleteFreeObject()" class="py-1.5 px-2 bg-red-50 text-red-600 hover:bg-red-100 rounded text-[11px] font-semibold col-span-2">Eliminar</button>
                     </div>
 
                     <div class="flex gap-2 items-center bg-slate-50 p-2 rounded border border-slate-200">
@@ -371,7 +655,7 @@
             <!-- CONFIGURACIÓN DE PAPEL -->
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
                 <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Configuración de Papel</h2>
-                <div class="flex gap-2">
+                <div class="paper-settings-grid">
                     <div class="flex-1">
                         <label class="block text-xs font-semibold text-slate-600 mb-1">Hoja</label>
                         <select id="paperSize" class="w-full p-2 border border-slate-300 rounded-md text-xs bg-slate-50">
@@ -407,17 +691,6 @@
             <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 space-y-4">
                 <h2 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Opciones de Impresión</h2>
                 
-                <div id="fillToggleContainer" class="flex items-center justify-between">
-                    <div>
-                        <span class="block text-xs font-semibold text-slate-800">Autocompletar Hojas</span>
-                        <span class="block text-[11px] text-slate-500">Repite catálogo en la página</span>
-                    </div>
-                    <div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" id="toggleFill" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 z-10 top-0 left-0 border-slate-300"/>
-                        <label for="toggleFill" class="toggle-label block overflow-hidden h-6 rounded-full bg-slate-300 cursor-pointer transition-colors duration-300"></label>
-                    </div>
-                </div>
-
                 <div class="flex items-center justify-between pt-2 border-t border-slate-100">
                     <div>
                         <span class="block text-xs font-semibold text-slate-800">Líneas de Corte (Guías)</span>
@@ -454,19 +727,18 @@
             </div>
         </div>
 
-        <div class="p-5 bg-white border-t border-slate-200 shrink-0">
-            <div class="grid grid-cols-2 gap-2 mb-3">
-                <button id="btnNewProject" class="border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-1.5 px-2 rounded-lg text-[11px]">Nuevo</button>
-                <button id="btnOpenProject" class="border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-1.5 px-2 rounded-lg text-[11px]">Abrir</button>
-                <button id="btnSaveProject" class="col-span-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-2 rounded-lg text-[11px]">Guardar proyecto</button>
+        <div class="p-3 bg-white border-t border-slate-200 shrink-0 grid grid-cols-3 gap-1.5">
+            <div class="contents">
+                <button id="btnOpenProject" title="Abrir proyecto" class="min-w-0 border border-slate-300 bg-slate-50 hover:bg-slate-100 text-slate-700 font-bold py-2 px-1 rounded-lg text-[10px]">Abrir</button>
+                <button id="btnSaveProject" title="Guardar proyecto" class="min-w-0 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-1 rounded-lg text-[10px]">Guardar</button>
             </div>
-            <button id="btnClearAll" class="w-full mb-2 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2 px-3 rounded-lg transition-colors flex justify-center items-center gap-2 text-xs">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <button id="btnClearAll" title="Limpiar todas las imágenes y páginas" class="min-w-0 border border-red-200 bg-red-50 hover:bg-red-100 text-red-700 font-bold py-2 px-1 rounded-lg transition-colors flex justify-center items-center gap-1 text-[10px]">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-9 0h12" />
                 </svg>
-                Limpiar todo
+                Limpiar
             </button>
-            <button id="btnPrint" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg transition-transform transform hover:-translate-y-0.5 flex justify-center items-center gap-2 text-sm">
+            <button id="btnPrint" class="col-span-3 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-3 rounded-lg shadow-lg transition-transform transform hover:-translate-y-0.5 flex justify-center items-center gap-2 text-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                 </svg>
@@ -498,6 +770,90 @@
         </div>
     </main>
 
+    <div id="imageEditorModal" class="image-editor-modal hidden">
+        <div class="image-editor-panel">
+            <div class="flex items-center justify-between px-5 py-4 border-b border-slate-200 bg-slate-800 text-white">
+                <div>
+                    <h3 class="text-lg font-bold">Editar imagen</h3>
+                    <p class="text-xs text-slate-300">Ajustes visuales, espejo, giro e invertido</p>
+                </div>
+                <button type="button" onclick="closeImageEditor()" class="text-white hover:text-slate-300 text-2xl">×</button>
+            </div>
+            <div class="grid grid-cols-1 xl:grid-cols-[1.4fr_0.8fr] gap-4 p-5">
+                <div class="space-y-4">
+                    <div class="editor-preview-viewport rounded-xl border border-slate-200">
+                        <div id="editorCropBox" class="editor-crop-box"></div>
+                        <div id="editorVignetteOverlay" class="editor-vignette-overlay"></div>
+                        <img id="editorPreviewImage" class="editor-preview-image" alt="Vista previa de edición" draggable="false">
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button type="button" onclick="toggleImageMirror()" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold">Invertir figura</button>
+                        <button type="button" onclick="rotateImageEditor(-90)" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold">↺ 90°</button>
+                        <button type="button" onclick="rotateImageEditor(90)" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold">↻ 90°</button>
+                        <button type="button" onclick="toggleImageInvert()" class="px-3 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold">Invertir colores</button>
+                        <button type="button" id="toggleCropEditorBtn" onclick="toggleEditorCropMode()" class="px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold">Habilitar recorte</button>
+                    </div>
+                    <div class="flex gap-2 flex-wrap">
+                        <button type="button" onclick="undoImageEditorChanges()" class="px-3 py-2 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-800 text-xs font-bold">Deshacer</button>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="bg-white rounded-xl border border-slate-200 p-3">
+                        <div class="modifier-scroll-panel space-y-4">
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Brillo</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="editBrightnessRange" type="range" min="0" max="200" value="100" class="w-full accent-violet-600">
+                                    <input id="editBrightnessNumber" type="number" min="0" max="200" value="100" class="w-16 p-1.5 border border-slate-300 rounded text-xs text-center bg-slate-50 text-slate-800 font-bold">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Oscuridad</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="editDarknessRange" type="range" min="0" max="200" value="100" class="w-full accent-violet-600">
+                                    <input id="editDarknessNumber" type="number" min="0" max="200" value="100" class="w-16 p-1.5 border border-slate-300 rounded text-xs text-center bg-slate-50 text-slate-800 font-bold">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Saturado</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="editSaturationRange" type="range" min="0" max="200" value="100" class="w-full accent-violet-600">
+                                    <input id="editSaturationNumber" type="number" min="0" max="200" value="100" class="w-16 p-1.5 border border-slate-300 rounded text-xs text-center bg-slate-50 text-slate-800 font-bold">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Contraste</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="editContrastRange" type="range" min="0" max="200" value="100" class="w-full accent-violet-600">
+                                    <input id="editContrastNumber" type="number" min="0" max="200" value="100" class="w-16 p-1.5 border border-slate-300 rounded text-xs text-center bg-slate-50 text-slate-800 font-bold">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Nitidez</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="editSharpnessRange" type="range" min="0" max="200" value="100" class="w-full accent-violet-600">
+                                    <input id="editSharpnessNumber" type="number" min="0" max="200" value="100" class="w-16 p-1.5 border border-slate-300 rounded text-xs text-center bg-slate-50 text-slate-800 font-bold">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-[11px] font-bold text-slate-600 mb-1">Viñeta</label>
+                                <div class="flex items-center gap-2">
+                                    <input id="editVignetteRange" type="range" min="0" max="100" value="0" class="w-full accent-violet-600">
+                                    <input id="editVignetteNumber" type="number" min="0" max="100" value="0" class="w-16 p-1.5 border border-slate-300 rounded text-xs text-center bg-slate-50 text-slate-800 font-bold">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-2 pt-2">
+                        <button type="button" onclick="closeImageEditor()" class="px-4 py-2 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 text-sm font-bold">Cancelar</button>
+                        <button type="button" onclick="saveImageEditorChanges()" class="px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold">Guardar cambios</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         // ESTADO GLOBAL
         let imageIdCounter = 0;
@@ -510,8 +866,24 @@
         let freeObjIdCounter = 0;
         let freePagesCount = 1;
         let isGlobalCropMode = false;
+        let imageEditorUndoStack = [];
         let clipboard = []; // Portapapeles múltiple
         let currentAlign = 'mc';
+        let imageEditorState = {
+            objId: null,
+            brightness: 100,
+            darkness: 100,
+            saturation: 100,
+            contrast: 100,
+            sharpness: 100,
+            vignette: 0,
+            mirror: false,
+            rotate: 0,
+            invert: false,
+            cropEnabled: false,
+            cropRect: null,
+            cropStart: null
+        };
 
         // HISTORIAL PARA DESHACER (Ctrl + Z)
         let historyStack = [];
@@ -575,11 +947,46 @@
                 updateCanvas();
             }
         });
-        ['imgWidth', 'imgHeight', 'imgGap', 'gridColsSelect', 'gridRowsSelect', 'fillDirection', 'toggleFill', 'toggleStretch'].forEach(id => {
-            document.getElementById(id).addEventListener('change', updateCanvas);
+        ['imgWidth', 'imgHeight', 'imgGap', 'gridColsSelect', 'gridRowsSelect', 'fillDirection', 'toggleFill', 'toggleFitToPage', 'toggleOnePerPage', 'toggleStretch'].forEach(id => {
+            document.getElementById(id).addEventListener('change', (event) => {
+                if (event.target.checked && event.target.id === 'toggleFitToPage') {
+                    document.getElementById('toggleOnePerPage').checked = false;
+                } else if (event.target.checked && event.target.id === 'toggleOnePerPage') {
+                    document.getElementById('toggleFitToPage').checked = false;
+                }
+                updateGridToggleStatus();
+                updateCanvas();
+            });
         });
 
         // FUNCIONES DE CONTROL PRINCIPAL Y ESTADO
+        function updateGridToggleStatus() {
+            const fitToPage = document.getElementById('toggleFitToPage').checked;
+            const onePerPage = document.getElementById('toggleOnePerPage').checked;
+            const stretchImage = document.getElementById('toggleStretch').checked;
+            const fillPage = document.getElementById('toggleFill').checked;
+            const setStatus = (id, message) => {
+                const status = document.getElementById(id);
+                status.textContent = message;
+                status.classList.toggle('hidden', !message);
+            };
+
+            setStatus('fitToPageStatus', fitToPage ? 'Activa: cada imagen va en su propia hoja.' : '');
+            setStatus('onePerPageStatus', onePerPage
+                ? (fillPage
+                    ? 'Activa: llena cada hoja con copias de una misma foto.'
+                    : 'Activa: una copia por página, a la medida indicada.')
+                : '');
+            setStatus('stretchStatus', stretchImage ? 'Activa: la imagen se deforma a la medida configurada.' : '');
+            setStatus('fillStatus', fillPage
+                ? (fitToPage
+                    ? 'En pausa: Ajustar a hoja coloca una imagen por página.'
+                    : onePerPage
+                        ? 'Activa: cada hoja se llena con una sola foto.'
+                        : 'Activa: las fotos se reparten equilibradamente en hojas completas.')
+                : '');
+        }
+
         function saveState() {
             // Si hicimos cambios después de deshacer, borramos el futuro divergente
             if (historyIndex < historyStack.length - 1) {
@@ -642,6 +1049,8 @@
                     imageWidth: inWidth.value,
                     imageHeight: inHeight.value,
                     imageGap: inGap.value,
+                    fitToPage: document.getElementById('toggleFitToPage').checked,
+                    onePerPage: document.getElementById('toggleOnePerPage').checked,
                     stretch: document.getElementById('toggleStretch').checked,
                     gridCols: document.getElementById('gridColsSelect').value,
                     gridRows: document.getElementById('gridRowsSelect').value,
@@ -679,11 +1088,14 @@
             setValue('imgWidth', settings.imageWidth);
             setValue('imgHeight', settings.imageHeight);
             setValue('imgGap', settings.imageGap);
+            setChecked('toggleFitToPage', settings.fitToPage);
+            setChecked('toggleOnePerPage', Boolean(settings.onePerPage) && !settings.fitToPage);
             setChecked('toggleStretch', settings.stretch);
             setValue('gridColsSelect', settings.gridCols);
             setValue('gridRowsSelect', settings.gridRows);
             setValue('fillDirection', settings.fillDirection);
             setChecked('toggleFill', settings.fill);
+            updateGridToggleStatus();
             setValue('paperSize', settings.paperSize);
             setValue('orientation', settings.orientation);
             setValue('customPaperW', settings.customPaperW);
@@ -712,19 +1124,63 @@
             updateCanvas();
         }
 
+        function saveProjectInBrowser(project) {
+            const currentName = project.fileName || currentProjectName || 'ImprinTek-project.imprintek';
+            const baseName = String(currentName).split(/[\\/]/).pop().replace(/\.imprintek$/i, '') || 'ImprinTek-project';
+            const fileName = `${baseName}.imprintek`;
+            const blob = new Blob([JSON.stringify(project, null, 2)], { type: 'application/json' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            return { canceled: false, filePath: fileName, browserDownload: true };
+        }
+
+        function openProjectInBrowser() {
+            return new Promise((resolve, reject) => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = '.imprintek,.json,application/json';
+                input.onchange = async () => {
+                    const file = input.files && input.files[0];
+                    if (!file) return resolve({ canceled: true });
+                    try {
+                        resolve({ canceled: false, filePath: file.name, project: JSON.parse(await file.text()) });
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                input.click();
+            });
+        }
+
         async function saveProject() {
-            if (!window.imprintek) return showToast('La API de proyecto no está disponible.', true);
-            const result = await window.imprintek.saveProject(collectProjectState());
-            if (!result.canceled) {
-                currentProjectName = result.filePath;
-                showToast('Proyecto guardado.');
+            try {
+                const project = collectProjectState();
+                const result = window.imprintek?.saveProject
+                    ? await window.imprintek.saveProject(project)
+                    : saveProjectInBrowser(project);
+                if (result.error) throw new Error(result.error);
+                if (!result.canceled) {
+                    currentProjectName = result.filePath;
+                    showToast(result.browserDownload ? 'Proyecto descargado como archivo .imprintek.' : 'Proyecto guardado.');
+                }
+            } catch (error) {
+                console.error('No se pudo guardar el proyecto:', error);
+                showToast(`No se pudo guardar el proyecto: ${error.message}`, true);
             }
         }
 
         async function openProject() {
-            if (!window.imprintek) return showToast('La API de proyecto no está disponible.', true);
             try {
-                const result = await window.imprintek.openProject();
+                const result = window.imprintek?.openProject
+                    ? await window.imprintek.openProject()
+                    : await openProjectInBrowser();
+                if (result.error) throw new Error(result.error);
                 if (!result.canceled) {
                     applyProjectState(result.project);
                     currentProjectName = result.filePath;
@@ -732,7 +1188,7 @@
                 }
             } catch (error) {
                 console.error(error);
-                showToast('No se pudo abrir el proyecto.', true);
+                showToast(`No se pudo abrir el proyecto: ${error.message}`, true);
             }
         }
 
@@ -740,21 +1196,18 @@
             appMode = mode;
             const gridSection = document.getElementById('gridControlsSection');
             const freeSection = document.getElementById('freeControlsSection');
-            const fillToggleContainer = document.getElementById('fillToggleContainer');
 
             if (mode === 'grid') {
                 document.getElementById('tabGridBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm flex items-center justify-center gap-1.5";
                 document.getElementById('tabFreeBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5";
                 gridSection.classList.remove('hidden');
                 freeSection.classList.add('hidden');
-                fillToggleContainer.classList.remove('hidden');
                 btnAddFreePage.style.display = 'none';
             } else {
                 document.getElementById('tabFreeBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-blue-700 bg-white shadow-sm flex items-center justify-center gap-1.5";
                 document.getElementById('tabGridBtn').className = "flex-1 py-2 text-xs font-bold rounded-lg transition-all text-slate-600 hover:text-slate-900 flex items-center justify-center gap-1.5";
                 freeSection.classList.remove('hidden');
                 gridSection.classList.add('hidden');
-                fillToggleContainer.classList.add('hidden');
                 btnAddFreePage.style.display = 'flex';
                 // NOTA: Se eliminó la conversión automática de la grilla para evitar conflictos al subir una foto y pasar a modo libre manual.
             }
@@ -779,27 +1232,100 @@
 
         // GESTIÓN DE CATÁLOGO (IMÁGENES) MULTIPLE
         function handleGlobalFileUpload(event) {
-            const files = event.target.files;
-            if (!files || files.length === 0) return;
+            addImageFiles(event.target.files);
+            event.target.value = '';
+        }
 
-            Array.from(files).forEach(file => {
+        function addImageFiles(fileList) {
+            const imageFiles = Array.from(fileList || []).filter(file =>
+                file.type.startsWith('image/') || /\.(png|jpe?g|gif|webp|bmp|tiff?)$/i.test(file.name)
+            );
+            if (imageFiles.length === 0) {
+                showToast('Suelta archivos de imagen para cargarlos.', true);
+                return;
+            }
+
+            let pendingFiles = imageFiles.length;
+            let addedCount = 0;
+            let failedCount = 0;
+            const finishFile = () => {
+                pendingFiles--;
+                if (pendingFiles === 0) {
+                    if (addedCount > 0) showToast(`${addedCount} imagen${addedCount === 1 ? '' : 'es'} cargada${addedCount === 1 ? '' : 's'}.`);
+                    if (failedCount > 0) showToast(failedCount === 1 ? '1 archivo no se pudo cargar.' : `${failedCount} archivos no se pudieron cargar.`, true);
+                }
+            };
+
+            imageFiles.forEach(file => {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    // Si existe un espacio vacío lo usamos, si no, creamos uno nuevo
-                    let emptyImg = imagesData.find(img => img.dataUrl === null);
-                    if (emptyImg) {
-                        emptyImg.dataUrl = e.target.result;
-                    } else {
-                        imagesData.push({ id: imageIdCounter++, dataUrl: e.target.result, copies: 1 });
-                    }
-                    renderImageList();
-                    updateCanvas();
+                    const src = e.target.result;
+                    const img = new Image();
+                    img.onload = () => {
+                        const aspectRatio = img.naturalWidth > 0 && img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : 1;
+                        const existingImg = imagesData.find(item => item.dataUrl === null);
+                        if (existingImg) {
+                            existingImg.dataUrl = src;
+                            existingImg.aspectRatio = aspectRatio;
+                            existingImg.brightness = 100;
+                            existingImg.darkness = 100;
+                            existingImg.saturation = 100;
+                            existingImg.contrast = 100;
+                            existingImg.sharpness = 100;
+                            existingImg.vignette = 0;
+                            existingImg.mirror = false;
+                            existingImg.invert = false;
+                            existingImg.rotate = 0;
+                        } else {
+                            imagesData.push({ id: imageIdCounter++, dataUrl: src, copies: 1, aspectRatio, brightness: 100, darkness: 100, saturation: 100, contrast: 100, sharpness: 100, vignette: 0, mirror: false, invert: false, rotate: 0 });
+                        }
+                        renderImageList();
+                        updateCanvas();
+                        addedCount++;
+                        finishFile();
+                    };
+                    img.onerror = () => {
+                        failedCount++;
+                        finishFile();
+                    };
+                    img.src = src;
+                };
+                reader.onerror = () => {
+                    failedCount++;
+                    finishFile();
                 };
                 reader.readAsDataURL(file);
             });
-            // Resetea el input para permitir volver a subir el mismo archivo después
-            event.target.value = ''; 
         }
+
+        let fileDragDepth = 0;
+        const fileDropOverlay = document.getElementById('fileDropOverlay');
+        const isFileDrag = (event) => Array.from(event.dataTransfer?.types || []).includes('Files');
+
+        document.addEventListener('dragenter', (event) => {
+            if (!isFileDrag(event)) return;
+            event.preventDefault();
+            fileDragDepth++;
+            fileDropOverlay.classList.remove('hidden');
+        });
+        document.addEventListener('dragover', (event) => {
+            if (!isFileDrag(event)) return;
+            event.preventDefault();
+            event.dataTransfer.dropEffect = 'copy';
+            fileDropOverlay.classList.remove('hidden');
+        });
+        document.addEventListener('dragleave', (event) => {
+            if (!isFileDrag(event)) return;
+            fileDragDepth = Math.max(0, fileDragDepth - 1);
+            if (fileDragDepth === 0) fileDropOverlay.classList.add('hidden');
+        });
+        document.addEventListener('drop', (event) => {
+            if (!isFileDrag(event)) return;
+            event.preventDefault();
+            fileDragDepth = 0;
+            fileDropOverlay.classList.add('hidden');
+            addImageFiles(event.dataTransfer.files);
+        });
 
         function removeImage(id) {
             imagesData = imagesData.filter(img => img.id !== id);
@@ -818,12 +1344,27 @@
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    const imgObj = imagesData.find(img => img.id === id);
-                    if (!imgObj) return;
-                    imgObj.dataUrl = e.target.result;
-                    imgObj.copies = Math.max(1, imgObj.copies || 1);
-                    renderImageList();
-                    updateCanvas();
+                    const src = e.target.result;
+                    const img = new Image();
+                    img.onload = () => {
+                        const imgObj = imagesData.find(imgItem => imgItem.id === id);
+                        if (!imgObj) return;
+                        imgObj.dataUrl = src;
+                        imgObj.copies = Math.max(1, imgObj.copies || 1);
+                        imgObj.aspectRatio = img.naturalWidth > 0 && img.naturalHeight > 0 ? img.naturalWidth / img.naturalHeight : (imgObj.aspectRatio || 1);
+                        imgObj.brightness = 100;
+                        imgObj.darkness = 100;
+                        imgObj.saturation = 100;
+                        imgObj.contrast = 100;
+                        imgObj.sharpness = 100;
+                        imgObj.vignette = 0;
+                        imgObj.mirror = false;
+                        imgObj.invert = false;
+                        imgObj.rotate = 0;
+                        renderImageList();
+                        updateCanvas();
+                    };
+                    img.src = src;
                 };
                 reader.readAsDataURL(file);
                 input.remove();
@@ -869,6 +1410,10 @@
                     ? `<button type="button" onclick="replaceImage(${img.id})" class="flex-1 py-1.5 text-[11px] bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded transition-colors shadow-sm">Reemplazar</button>`
                     : `<button type="button" onclick="replaceImage(${img.id})" class="flex-1 py-1.5 text-[11px] bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded transition-colors shadow-sm">Cargar</button>`;
 
+                const editAction = img.dataUrl
+                    ? `<button type="button" onclick="openImageEditorForCatalog(${img.id})" class="flex-1 py-1.5 text-[11px] bg-violet-50 text-violet-700 hover:bg-violet-100 font-bold rounded transition-colors shadow-sm">Editar</button>`
+                    : '';
+
                 const clearAction = `<button type="button" onclick="clearImage(${img.id})" class="w-12 py-1.5 text-[11px] bg-slate-100 text-slate-600 hover:bg-slate-200 font-bold rounded transition-colors">Quitar</button>`;
 
                 card.innerHTML = `
@@ -881,6 +1426,7 @@
                         </div>
                         <div class="flex gap-1 mt-2">
                             ${primaryAction}
+                            ${editAction}
                             ${clearAction}
                         </div>
                         ${addToFreeBtn}
@@ -903,6 +1449,16 @@
                 w = pd[sp].w; h = pd[sp].h;
             }
             return isL ? { w:h, h:w } : { w, h };
+        }
+
+        function getImageAspectRatio(src, fallbackW = 3, fallbackH = 4) {
+            const imgData = imagesData.find(img => img.dataUrl === src);
+            if (imgData && typeof imgData.aspectRatio === 'number' && Number.isFinite(imgData.aspectRatio) && imgData.aspectRatio > 0) {
+                return imgData.aspectRatio;
+            }
+            const safeW = Number(fallbackW) || 3;
+            const safeH = Number(fallbackH) || 4;
+            return safeW > 0 && safeH > 0 ? safeW / safeH : 1;
         }
 
         function createPageDOM(pageIndex, totalPages) {
@@ -968,16 +1524,35 @@
             const gap = parseFloat(inGap.value) || 0;
             const fillPage = document.getElementById('toggleFill').checked;
             const fillDir = document.getElementById('fillDirection').value;
+            const fitToPage = document.getElementById('toggleFitToPage').checked;
+            const onePerPage = document.getElementById('toggleOnePerPage').checked;
             const stretchImage = document.getElementById('toggleStretch').checked;
-            const safeMargin = 1.0; 
+            const safeMargin = fitToPage ? 0 : 1.0;
 
-            let maxCols = Math.floor((paper.w - safeMargin + gap) / (w + gap));
-            let maxRows = Math.floor((paper.h - safeMargin + gap) / (h + gap));
+            let targetW = w;
+            let targetH = h;
+
+            if (fitToPage) {
+                targetW = paper.w;
+                targetH = paper.h;
+            }
+
+            let maxCols = Math.floor((paper.w - safeMargin + gap) / (targetW + gap));
+            let maxRows = Math.floor((paper.h - safeMargin + gap) / (targetH + gap));
+
+            if (fitToPage) {
+                maxCols = 1;
+                maxRows = 1;
+            }
             
             const reqCols = document.getElementById('gridColsSelect').value;
             const reqRows = document.getElementById('gridRowsSelect').value;
             if (reqCols !== 'auto') maxCols = Math.min(maxCols, parseInt(reqCols));
             if (reqRows !== 'auto') maxRows = Math.min(maxRows, parseInt(reqRows));
+            if (onePerPage && !fillPage) {
+                maxCols = Math.min(maxCols, 1);
+                maxRows = Math.min(maxRows, 1);
+            }
 
             if (maxCols < 1 || maxRows < 1) {
                 showToast("Dimensiones exceden la hoja. Revisa márgenes.", true);
@@ -985,8 +1560,13 @@
             }
 
             const itemsPerPage = maxCols * maxRows;
-            let finalImages = fillPage ? Array.from({length: itemsPerPage}, (_, i) => sequence[i % sequence.length]) : sequence;
-            const totalPages = Math.ceil(finalImages.length / itemsPerPage);
+            const fillSingleImagePages = onePerPage && fillPage && !fitToPage;
+            let finalImages = sequence;
+            if (!fitToPage && fillPage && !onePerPage) {
+                const totalSlots = Math.ceil(sequence.length / itemsPerPage) * itemsPerPage;
+                finalImages = Array.from({length: totalSlots}, (_, i) => sequence[i % sequence.length]);
+            }
+            const totalPages = fillSingleImagePages ? sequence.length : Math.ceil(finalImages.length / itemsPerPage);
 
             for(let p = 0; p < totalPages; p++) {
                 const pageEl = createPageDOM(p, totalPages);
@@ -995,12 +1575,18 @@
                 const photoGrid = document.createElement('div');
                 photoGrid.className = 'absolute inset-0 z-10 pointer-events-none';
 
-                const pageImages = finalImages.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
-                const actualCols = Math.min(pageImages.length, maxCols);
-                const actualRows = Math.ceil(pageImages.length / maxCols);
+                const pageImages = fillSingleImagePages
+                    ? Array(itemsPerPage).fill(sequence[p])
+                    : finalImages.slice(p * itemsPerPage, (p + 1) * itemsPerPage);
+                const actualCols = fillDir === 'cols'
+                    ? Math.ceil(pageImages.length / maxRows)
+                    : Math.min(pageImages.length, maxCols);
+                const actualRows = fillDir === 'cols'
+                    ? Math.min(pageImages.length, maxRows)
+                    : Math.ceil(pageImages.length / maxCols);
 
-                const gridW = (actualCols * w) + (actualCols > 1 ? (actualCols - 1) * gap : 0);
-                const gridH = (actualRows * h) + (actualRows > 1 ? (actualRows - 1) * gap : 0);
+                const gridW = (actualCols * targetW) + (actualCols > 1 ? (actualCols - 1) * gap : 0);
+                const gridH = (actualRows * targetH) + (actualRows > 1 ? (actualRows - 1) * gap : 0);
 
                 let startX = (paper.w - gridW) / 2;
                 let startY = (paper.h - gridH) / 2;
@@ -1016,19 +1602,40 @@
                     if (fillDir === 'cols') { c = Math.floor(index / maxRows); r = index % maxRows; }
                     else { r = Math.floor(index / maxCols); c = index % maxCols; }
 
-                    const posX = startX + c * (w + gap);
-                    const posY = startY + r * (h + gap);
+                    let itemW = targetW;
+                    let itemH = targetH;
+                    if (fitToPage && !stretchImage) {
+                        const aspectRatio = getImageAspectRatio(src, w, h);
+                        const pageAreaAspect = paper.w / paper.h;
+                        if (aspectRatio >= pageAreaAspect) {
+                            itemW = paper.w;
+                            itemH = paper.w / aspectRatio;
+                        } else {
+                            itemH = paper.h;
+                            itemW = paper.h * aspectRatio;
+                        }
+                    } else if (!fitToPage && stretchImage) {
+                        itemW = w;
+                        itemH = h;
+                    }
+
+                    const centerImage = fitToPage || (onePerPage && !fillPage);
+                    const posX = centerImage ? (paper.w - itemW) / 2 : startX + c * (targetW + gap);
+                    const posY = centerImage ? (paper.h - itemH) / 2 : startY + r * (targetH + gap);
 
                     const img = document.createElement('img');
                     img.src = src;
                     img.className = 'photo-item';
-                    img.style.width = `${w}cm`; img.style.height = `${h}cm`;
+                    img.style.width = `${itemW}cm`; img.style.height = `${itemH}cm`;
                     img.style.left = `${posX}cm`; img.style.top = `${posY}cm`;
-                    img.style.objectFit = stretchImage ? 'fill' : 'cover';
+                    img.style.objectFit = stretchImage && fitToPage ? 'fill' : (stretchImage ? 'fill' : 'contain');
+                    const imageMeta = imagesData.find(image => image.dataUrl === src) || {};
+                    img.style.filter = getObjectFilter(imageMeta);
+                    img.style.transform = `scaleX(${Boolean(imageMeta.mirror) ? -1 : 1}) rotate(${Number(imageMeta.rotate || 0)}deg)`;
 
                     photoGrid.appendChild(img);
-                    uniqueX.add(posX.toFixed(3)); uniqueX.add((posX + w).toFixed(3));
-                    uniqueY.add(posY.toFixed(3)); uniqueY.add((posY + h).toFixed(3));
+                    uniqueX.add(posX.toFixed(3)); uniqueX.add((posX + (fitToPage ? itemW : Math.max(itemW, targetW))).toFixed(3));
+                    uniqueY.add(posY.toFixed(3)); uniqueY.add((posY + (fitToPage ? itemH : Math.max(itemH, targetH))).toFixed(3));
                 });
 
                 if (showLines) {
@@ -1125,6 +1732,14 @@
                 w: w, h: h,
                 cropT: 0, cropR: 0, cropB: 0, cropL: 0,
                 angle: 0,
+                brightness: 100,
+                darkness: 100,
+                saturation: 100,
+                contrast: 100,
+                sharpness: 100,
+                vignette: 0,
+                mirror: false,
+                invert: false,
                 page: targetPage
             };
             freeObjects.push(newObj);
@@ -1190,7 +1805,7 @@
                     
                     const img = document.createElement('img');
                     img.src = obj.src;
-                    img.style.cssText = `position: absolute; left: -${obj.cropL}cm; top: -${obj.cropT}cm; width: ${obj.w}cm; height: ${obj.h}cm; max-width: none; max-height: none; pointer-events: none;`;
+                    img.style.cssText = `position: absolute; left: -${obj.cropL}cm; top: -${obj.cropT}cm; width: ${obj.w}cm; height: ${obj.h}cm; max-width: none; max-height: none; pointer-events: none; filter: ${getObjectFilter(obj)}; transform: scaleX(${obj.mirror ? -1 : 1});`;
                     
                     imgMask.appendChild(img);
                     container.appendChild(imgMask);
@@ -1525,6 +2140,554 @@
             }
         }
 
+        function getObjectFilter(obj) {
+            const brightness = Number(obj?.brightness ?? 100);
+            const darkness = Number(obj?.darkness ?? 100);
+            const saturation = Number(obj?.saturation ?? 100);
+            const contrast = Number(obj?.contrast ?? 100);
+            const invert = obj?.invert ? 100 : 0;
+            const safeBrightness = Math.max(0, Math.min(200, brightness * (darkness / 100)));
+            const safeContrast = Math.max(0, Math.min(200, contrast));
+            const safeSaturation = Math.max(0, Math.min(200, saturation));
+            const sharpnessBoost = Math.max(0, Math.min(200, Number(obj?.sharpness ?? 100))) - 100;
+            const filterParts = [
+                `brightness(${safeBrightness}%)`,
+                `contrast(${safeContrast + sharpnessBoost * 0.5}%)`,
+                `saturate(${safeSaturation}%)`,
+                `invert(${invert}%)`
+            ];
+            return filterParts.join(' ');
+        }
+
+        function openImageEditor() {
+            if (selectedFreeObjIds.length !== 1) {
+                showToast('Selecciona una imagen para editar.', true);
+                return;
+            }
+
+            const obj = freeObjects.find(o => o.id === selectedFreeObjIds[0]);
+            if (!obj || !obj.src) return;
+
+            imageEditorState = {
+                objId: obj.id,
+                sourceType: 'free',
+                brightness: Number(obj.brightness ?? 100),
+                darkness: Number(obj.darkness ?? 100),
+                saturation: Number(obj.saturation ?? 100),
+                contrast: Number(obj.contrast ?? 100),
+                sharpness: Number(obj.sharpness ?? 100),
+                vignette: Number(obj.vignette ?? 0),
+                mirror: Boolean(obj.mirror),
+                rotate: Number(obj.angle ?? 0),
+                invert: Boolean(obj.invert),
+                cropEnabled: false,
+                cropRect: null,
+                cropStart: null
+            };
+            imageEditorUndoStack = [getEditorSnapshot()];
+
+            const modal = document.getElementById('imageEditorModal');
+            modal.classList.remove('hidden');
+            const img = document.getElementById('editorPreviewImage');
+            img.src = obj.src;
+            img.style.filter = getObjectFilter(obj);
+            img.style.transform = `scaleX(${imageEditorState.mirror ? -1 : 1}) rotate(${imageEditorState.rotate}deg)`;
+            document.getElementById('editorVignetteOverlay').style.opacity = String(Math.min(1, Number(imageEditorState.vignette || 0) / 100));
+
+            const controls = [
+                ['editBrightnessRange', 'editBrightnessNumber', 'brightness'],
+                ['editDarknessRange', 'editDarknessNumber', 'darkness'],
+                ['editSaturationRange', 'editSaturationNumber', 'saturation'],
+                ['editContrastRange', 'editContrastNumber', 'contrast'],
+                ['editSharpnessRange', 'editSharpnessNumber', 'sharpness'],
+                ['editVignetteRange', 'editVignetteNumber', 'vignette']
+            ];
+
+            controls.forEach(([rangeId, numberId, key]) => {
+                const range = document.getElementById(rangeId);
+                const number = document.getElementById(numberId);
+                const value = Number(imageEditorState[key]);
+                range.value = value;
+                number.value = value;
+                range.oninput = () => {
+                    const v = Number(range.value);
+                    number.value = v;
+                    imageEditorState[key] = v;
+                    applyEditorPreview();
+                };
+                number.oninput = () => {
+                    const v = clampNumber(Number(number.value) || 0, range.min, range.max);
+                    range.value = v;
+                    number.value = v;
+                    imageEditorState[key] = v;
+                    applyEditorPreview();
+                };
+            });
+
+            document.getElementById('toggleCropEditorBtn').classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+            document.getElementById('toggleCropEditorBtn').classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+            document.getElementById('toggleCropEditorBtn').textContent = 'Habilitar recorte';
+            hideCropEditorBox();
+            applyEditorPreview();
+        }
+
+        function closeImageEditor() {
+            document.getElementById('imageEditorModal').classList.add('hidden');
+            const cropBox = document.getElementById('editorCropBox');
+            cropBox.style.display = 'none';
+            cropBox.innerHTML = '';
+            if (imageEditorState) {
+                imageEditorState.cropEnabled = false;
+                imageEditorState.cropRect = null;
+                imageEditorState.cropStart = null;
+            }
+            imageEditorState = null;
+            imageEditorUndoStack = [];
+        }
+
+        function clampNumber(value, min, max) {
+            return Math.min(Math.max(value, Number(min)), Number(max));
+        }
+
+        function getEditorSnapshot() {
+            return JSON.parse(JSON.stringify(imageEditorState || {}));
+        }
+
+        function commitEditorHistory() {
+            if (!imageEditorState) return;
+            const snapshot = getEditorSnapshot();
+            const last = imageEditorUndoStack[imageEditorUndoStack.length - 1];
+            if (!last || JSON.stringify(last) !== JSON.stringify(snapshot)) {
+                imageEditorUndoStack.push(snapshot);
+                if (imageEditorUndoStack.length > 20) imageEditorUndoStack.shift();
+            }
+        }
+
+        function undoImageEditorChanges() {
+            if (imageEditorUndoStack.length <= 1) {
+                showToast('No hay cambios anteriores para deshacer', true);
+                return;
+            }
+            imageEditorUndoStack.pop();
+            const previous = imageEditorUndoStack[imageEditorUndoStack.length - 1];
+            Object.assign(imageEditorState, previous);
+            applyEditorControlsFromState();
+            applyEditorPreview();
+            showToast('Último ajuste deshecho');
+        }
+
+        function isMeaningfulCropRect(rect) {
+            if (!rect) return false;
+            return rect.x > 0.01 || rect.y > 0.01 || rect.width < 0.99 || rect.height < 0.99;
+        }
+
+        function applyEditorPreview() {
+            const img = document.getElementById('editorPreviewImage');
+            const overlay = document.getElementById('editorVignetteOverlay');
+            const brightness = Number(imageEditorState.brightness ?? 100);
+            const darkness = Number(imageEditorState.darkness ?? 100);
+            const saturation = Number(imageEditorState.saturation ?? 100);
+            const contrast = Number(imageEditorState.contrast ?? 100);
+            const sharpnessBoost = Math.max(0, Number(imageEditorState.sharpness ?? 100) - 100);
+            const safeBrightness = Math.max(0, Math.min(200, brightness * (darkness / 100)));
+            const safeContrast = Math.max(0, Math.min(200, contrast + sharpnessBoost * 0.5));
+
+            img.style.filter = [
+                `brightness(${safeBrightness}%)`,
+                `contrast(${safeContrast}%)`,
+                `saturate(${Math.max(0, Math.min(200, saturation))}%)`,
+                imageEditorState.invert ? 'invert(100%)' : 'invert(0%)'
+            ].join(' ');
+            img.style.transform = `translate(-50%, -50%) scaleX(${imageEditorState.mirror ? -1 : 1}) rotate(${imageEditorState.rotate}deg)`;
+            const cropRect = imageEditorState.cropRect || { x: 0, y: 0, width: 1, height: 1 };
+            img.style.clipPath = !imageEditorState.cropEnabled || !isMeaningfulCropRect(cropRect)
+                ? 'none'
+                : `inset(${(cropRect.y * 100).toFixed(2)}% ${(100 - ((cropRect.x + cropRect.width) * 100)).toFixed(2)}% ${(100 - ((cropRect.y + cropRect.height) * 100)).toFixed(2)}% ${(cropRect.x * 100).toFixed(2)}%)`;
+            overlay.style.opacity = String(Math.min(1, Number(imageEditorState.vignette || 0) / 100));
+
+            const viewport = document.querySelector('.editor-preview-viewport');
+            if (viewport) {
+                viewport.classList.toggle('crop-active', Boolean(imageEditorState.cropEnabled));
+                viewport.style.cursor = imageEditorState.cropEnabled ? 'crosshair' : 'default';
+            }
+        }
+
+        function toggleImageMirror() {
+            commitEditorHistory();
+            imageEditorState.mirror = !imageEditorState.mirror;
+            applyEditorPreview();
+        }
+
+        function rotateImageEditor(deg) {
+            commitEditorHistory();
+            imageEditorState.rotate = (Number(imageEditorState.rotate || 0) + deg) % 360;
+            if (imageEditorState.rotate < 0) imageEditorState.rotate += 360;
+            applyEditorPreview();
+        }
+
+        function toggleImageInvert() {
+            commitEditorHistory();
+            imageEditorState.invert = !imageEditorState.invert;
+            applyEditorPreview();
+        }
+
+        function toggleEditorCropMode() {
+            commitEditorHistory();
+            imageEditorState.cropEnabled = !imageEditorState.cropEnabled;
+            const btn = document.getElementById('toggleCropEditorBtn');
+            if (imageEditorState.cropEnabled) {
+                if (!imageEditorState.cropRect) {
+                    imageEditorState.cropRect = { x: 0, y: 0, width: 1, height: 1 };
+                }
+                btn.classList.remove('bg-indigo-600', 'hover:bg-indigo-500');
+                btn.classList.add('bg-emerald-600', 'hover:bg-emerald-500');
+                btn.textContent = 'Recorte activo';
+                setupCropInteraction();
+            } else {
+                btn.classList.remove('bg-emerald-600', 'hover:bg-emerald-500');
+                btn.classList.add('bg-indigo-600', 'hover:bg-indigo-500');
+                btn.textContent = 'Habilitar recorte';
+                hideCropEditorBox();
+            }
+            applyEditorPreview();
+        }
+
+        function setupCropInteraction() {
+            const viewport = document.querySelector('.editor-preview-viewport');
+            if (!viewport || !imageEditorState) return;
+
+            const cropBox = document.getElementById('editorCropBox');
+            if (!imageEditorState.cropRect) {
+                imageEditorState.cropRect = { x: 0, y: 0, width: 1, height: 1 };
+            }
+
+            const clampRect = (rect) => {
+                const minSize = 0.08;
+                const next = { ...rect };
+                next.width = Math.min(Math.max(next.width, minSize), 1);
+                next.height = Math.min(Math.max(next.height, minSize), 1);
+                next.x = Math.min(Math.max(next.x, 0), Math.max(0, 1 - next.width));
+                next.y = Math.min(Math.max(next.y, 0), Math.max(0, 1 - next.height));
+                return next;
+            };
+
+            const renderCropBox = () => {
+                const boxRect = viewport.getBoundingClientRect();
+                const left = imageEditorState.cropRect.x * boxRect.width;
+                const top = imageEditorState.cropRect.y * boxRect.height;
+                const width = imageEditorState.cropRect.width * boxRect.width;
+                const height = imageEditorState.cropRect.height * boxRect.height;
+
+                cropBox.style.left = `${left}px`;
+                cropBox.style.top = `${top}px`;
+                cropBox.style.width = `${width}px`;
+                cropBox.style.height = `${height}px`;
+                cropBox.style.display = 'block';
+                cropBox.innerHTML = '';
+
+                ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach((key) => {
+                    const handle = document.createElement('div');
+                    handle.className = `crop-handle ${key}`;
+                    handle.dataset.handle = key;
+                    cropBox.appendChild(handle);
+                });
+            };
+
+            const begin = (event) => {
+                if (!imageEditorState.cropEnabled || event.button !== 0) return;
+                commitEditorHistory();
+                const targetHandle = event.target.closest('.crop-handle')?.dataset.handle || 'move';
+                const rect = viewport.getBoundingClientRect();
+                const x = (event.clientX - rect.left) / rect.width;
+                const y = (event.clientY - rect.top) / rect.height;
+                imageEditorState.cropStart = {
+                    x,
+                    y,
+                    handle: targetHandle,
+                    initial: { ...imageEditorState.cropRect }
+                };
+                event.preventDefault();
+                if (event.target.setPointerCapture) {
+                    event.target.setPointerCapture(event.pointerId);
+                }
+            };
+
+            const move = (event) => {
+                if (!imageEditorState.cropEnabled || !imageEditorState.cropStart) return;
+                const rect = viewport.getBoundingClientRect();
+                const x = (event.clientX - rect.left) / rect.width;
+                const y = (event.clientY - rect.top) / rect.height;
+                const start = imageEditorState.cropStart;
+                const initial = start.initial || imageEditorState.cropRect;
+                const minSize = 0.08;
+
+                let next = { ...initial };
+
+                if (start.handle === 'move') {
+                    const dx = x - start.x;
+                    const dy = y - start.y;
+                    next.x = clampNumber(initial.x + dx, 0, Math.max(0, 1 - initial.width));
+                    next.y = clampNumber(initial.y + dy, 0, Math.max(0, 1 - initial.height));
+                } else {
+                    let left = initial.x;
+                    let top = initial.y;
+                    let right = initial.x + initial.width;
+                    let bottom = initial.y + initial.height;
+
+                    if (start.handle.includes('w')) left = Math.min(x, right - minSize);
+                    if (start.handle.includes('e')) right = Math.max(x, left + minSize);
+                    if (start.handle.includes('n')) top = Math.min(y, bottom - minSize);
+                    if (start.handle.includes('s')) bottom = Math.max(y, top + minSize);
+
+                    next = {
+                        x: clampNumber(left, 0, 1),
+                        y: clampNumber(top, 0, 1),
+                        width: clampNumber(right - left, minSize, 1),
+                        height: clampNumber(bottom - top, minSize, 1)
+                    };
+                }
+
+                imageEditorState.cropRect = clampRect(next);
+                renderCropBox();
+                applyEditorPreview();
+            };
+
+            const end = (event) => {
+                if (!imageEditorState || !imageEditorState.cropEnabled) return;
+                if (imageEditorState.cropRect) {
+                    imageEditorState.cropRect = clampRect(imageEditorState.cropRect);
+                }
+                imageEditorState.cropStart = null;
+                if (event && event.target && event.target.releasePointerCapture) {
+                    try { event.target.releasePointerCapture(event.pointerId); } catch (err) {}
+                }
+            };
+
+            renderCropBox();
+            viewport.onpointerdown = begin;
+            viewport.onpointermove = move;
+            viewport.onpointerup = end;
+            viewport.onpointerleave = end;
+            cropBox.onpointerdown = begin;
+            cropBox.onpointermove = move;
+            cropBox.onpointerup = end;
+        }
+
+        function hideCropEditorBox() {
+            const cropBox = document.getElementById('editorCropBox');
+            cropBox.style.display = 'none';
+            cropBox.style.width = '0px';
+            cropBox.style.height = '0px';
+            cropBox.innerHTML = '';
+            if (imageEditorState) {
+                imageEditorState.cropStart = null;
+            }
+            const viewport = document.querySelector('.editor-preview-viewport');
+            if (viewport) {
+                viewport.onpointerdown = null;
+                viewport.onpointermove = null;
+                viewport.onpointerup = null;
+                viewport.onpointerleave = null;
+            }
+        }
+
+        function openImageEditorForCatalog(imageId) {
+            const imageObj = imagesData.find(img => img.id === imageId);
+            if (!imageObj || !imageObj.dataUrl) return;
+
+            imageEditorState = {
+                objId: imageId,
+                sourceType: 'catalog',
+                brightness: Number(imageObj.brightness ?? 100),
+                darkness: Number(imageObj.darkness ?? 100),
+                saturation: Number(imageObj.saturation ?? 100),
+                contrast: Number(imageObj.contrast ?? 100),
+                sharpness: Number(imageObj.sharpness ?? 100),
+                vignette: Number(imageObj.vignette ?? 0),
+                mirror: Boolean(imageObj.mirror),
+                rotate: Number(imageObj.rotate ?? 0),
+                invert: Boolean(imageObj.invert),
+                cropEnabled: false,
+                cropRect: null,
+                cropStart: null
+            };
+            imageEditorUndoStack = [getEditorSnapshot()];
+
+            const modal = document.getElementById('imageEditorModal');
+            modal.classList.remove('hidden');
+            const img = document.getElementById('editorPreviewImage');
+            img.src = imageObj.dataUrl;
+            img.style.filter = getObjectFilter(imageObj);
+            img.style.transform = `translate(-50%, -50%) scaleX(${imageEditorState.mirror ? -1 : 1}) rotate(${imageEditorState.rotate}deg)`;
+            document.getElementById('editorVignetteOverlay').style.opacity = String(Math.min(1, Number(imageEditorState.vignette || 0) / 100));
+            applyEditorControlsFromState();
+            applyEditorPreview();
+        }
+
+        function syncTargetEditorState(target) {
+            if (!target) return;
+            const state = imageEditorState || {};
+            const nextBrightness = Number(state.brightness ?? 100);
+            const nextDarkness = Number(state.darkness ?? 100);
+            const nextSaturation = Number(state.saturation ?? 100);
+            const nextContrast = Number(state.contrast ?? 100);
+            const nextSharpness = Number(state.sharpness ?? 100);
+            const nextVignette = Number(state.vignette ?? 0);
+            const nextMirror = Boolean(state.mirror);
+            const nextInvert = Boolean(state.invert);
+            const nextRotate = Number(state.rotate || 0);
+
+            target.brightness = nextBrightness;
+            target.darkness = nextDarkness;
+            target.saturation = nextSaturation;
+            target.contrast = nextContrast;
+            target.sharpness = nextSharpness;
+            target.vignette = nextVignette;
+            target.mirror = nextMirror;
+            target.invert = nextInvert;
+            if (state.sourceType === 'catalog') {
+                target.rotate = nextRotate;
+            } else {
+                target.angle = nextRotate;
+            }
+        }
+
+        function saveImageEditorChanges() {
+            const target = imageEditorState.sourceType === 'catalog'
+                ? imagesData.find(img => img.id === imageEditorState.objId)
+                : freeObjects.find(o => o.id === imageEditorState.objId);
+
+            if (!target || !target.src && !target.dataUrl) return;
+
+            if (imageEditorState.sourceType === 'free') syncTargetEditorState(target);
+
+            const sourceUrl = target.src || target.dataUrl;
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const sourceW = img.naturalWidth;
+                const sourceH = img.naturalHeight;
+
+                const shouldApplyCrop = Boolean(imageEditorState.cropEnabled && imageEditorState.cropRect && isMeaningfulCropRect(imageEditorState.cropRect));
+                let cropX = 0, cropY = 0, cropW = sourceW, cropH = sourceH;
+                if (shouldApplyCrop) {
+                    cropX = Math.max(0, Math.min(sourceW, imageEditorState.cropRect.x * sourceW));
+                    cropY = Math.max(0, Math.min(sourceH, imageEditorState.cropRect.y * sourceH));
+                    cropW = Math.max(1, Math.min(sourceW - cropX, imageEditorState.cropRect.width * sourceW));
+                    cropH = Math.max(1, Math.min(sourceH - cropY, imageEditorState.cropRect.height * sourceH));
+                }
+
+                const effectiveRotation = Number(imageEditorState.rotate || 0);
+                const needsSwap = Math.abs(effectiveRotation % 180) > 0;
+                canvas.width = needsSwap ? cropH : cropW;
+                canvas.height = needsSwap ? cropW : cropH;
+
+                const ctx = canvas.getContext('2d');
+                const filterValue = [
+                    `brightness(${Number(imageEditorState.brightness ?? 100) * (Number(imageEditorState.darkness ?? 100) / 100)}%)`,
+                    `contrast(${Number(imageEditorState.contrast ?? 100)}%)`,
+                    `saturate(${Number(imageEditorState.saturation ?? 100)}%)`,
+                    imageEditorState.invert ? 'invert(100%)' : 'invert(0%)'
+                ].join(' ');
+                ctx.filter = filterValue;
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate((effectiveRotation * Math.PI) / 180);
+                ctx.scale(imageEditorState.mirror ? -1 : 1, 1);
+                ctx.translate(-cropW / 2, -cropH / 2);
+                ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
+
+                if (Number(imageEditorState.vignette || 0) > 0) {
+                    const vignette = ctx.createRadialGradient(
+                        canvas.width / 2,
+                        canvas.height / 2,
+                        Math.min(canvas.width, canvas.height) * 0.2,
+                        canvas.width / 2,
+                        canvas.height / 2,
+                        Math.max(canvas.width, canvas.height) * 0.75
+                    );
+                    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+                    vignette.addColorStop(1, `rgba(0,0,0,${Math.min(0.8, Number(imageEditorState.vignette) / 120)})`);
+                    ctx.fillStyle = vignette;
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+
+                const processed = canvas.toDataURL('image/png');
+                if (imageEditorState.sourceType === 'catalog') {
+                    target.dataUrl = processed;
+                    target.aspectRatio = canvas.width / canvas.height;
+                    target.brightness = 100;
+                    target.darkness = 100;
+                    target.saturation = 100;
+                    target.contrast = 100;
+                    target.sharpness = 100;
+                    target.vignette = 0;
+                    target.mirror = false;
+                    target.invert = false;
+                    target.rotate = 0;
+                    renderImageList();
+                } else {
+                    target.src = processed;
+                    target.brightness = Number(imageEditorState.brightness ?? 100);
+                    target.darkness = Number(imageEditorState.darkness ?? 100);
+                    target.saturation = Number(imageEditorState.saturation ?? 100);
+                    target.contrast = Number(imageEditorState.contrast ?? 100);
+                    target.sharpness = Number(imageEditorState.sharpness ?? 100);
+                    target.vignette = Number(imageEditorState.vignette ?? 0);
+                    target.mirror = Boolean(imageEditorState.mirror);
+                    target.invert = Boolean(imageEditorState.invert);
+                    target.angle = Number(imageEditorState.rotate || 0);
+                }
+
+                imageEditorUndoStack = [getEditorSnapshot()];
+                updateCanvas();
+                saveState();
+                closeImageEditor();
+                showToast('Cambios aplicados');
+            };
+            img.src = sourceUrl;
+        }
+
+        function applyEditorControlsFromState() {
+            const controls = [
+                ['editBrightnessRange', 'editBrightnessNumber', 'brightness'],
+                ['editDarknessRange', 'editDarknessNumber', 'darkness'],
+                ['editSaturationRange', 'editSaturationNumber', 'saturation'],
+                ['editContrastRange', 'editContrastNumber', 'contrast'],
+                ['editSharpnessRange', 'editSharpnessNumber', 'sharpness'],
+                ['editVignetteRange', 'editVignetteNumber', 'vignette']
+            ];
+
+            controls.forEach(([rangeId, numberId, key]) => {
+                const range = document.getElementById(rangeId);
+                const number = document.getElementById(numberId);
+                const value = Number(imageEditorState[key]);
+                range.value = value;
+                number.value = value;
+                range.oninput = () => {
+                    const previous = getEditorSnapshot();
+                    const v = Number(range.value);
+                    number.value = v;
+                    imageEditorState[key] = v;
+                    if (JSON.stringify(previous) !== JSON.stringify(imageEditorState)) {
+                        imageEditorUndoStack.push(previous);
+                    }
+                    applyEditorPreview();
+                };
+                number.oninput = () => {
+                    const previous = getEditorSnapshot();
+                    const v = clampNumber(Number(number.value) || 0, range.min, range.max);
+                    range.value = v;
+                    number.value = v;
+                    imageEditorState[key] = v;
+                    if (JSON.stringify(previous) !== JSON.stringify(imageEditorState)) {
+                        imageEditorUndoStack.push(previous);
+                    }
+                    applyEditorPreview();
+                };
+            });
+
+        }
+
         function updateSelectedAngle(val) {
             const num = parseFloat(val);
             if (selectedFreeObjIds.length === 1 && !isNaN(num)) { 
@@ -1686,7 +2849,6 @@
         });
 
         btnClearAll.addEventListener('click', clearAll);
-        document.getElementById('btnNewProject').addEventListener('click', clearAll);
         document.getElementById('btnOpenProject').addEventListener('click', openProject);
         document.getElementById('btnSaveProject').addEventListener('click', saveProject);
 

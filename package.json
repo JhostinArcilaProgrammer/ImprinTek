@@ -1,7 +1,7 @@
 {
-  "name": "imprintek",
-  "version": "1.0.0",
-  "description": "Aplicación de escritorio para preparar fotografías para impresión.",
+  "name": "imprintek-win10",
+  "version": "1.0.1",
+  "description": "Versión moderna para Windows 10/11.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
@@ -12,23 +12,25 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
-    "electron-updater": "^6.8.9"
+    "electron-updater": "^6.8.9",
+    "sql.js": "^1.15.1"
   },
   "devDependencies": {
-    "electron": "^44.2.0",
-    "electron-builder": "^26.15.3",
+    "electron": "^33.4.11",
+    "electron-builder": "^25.0.0",
     "electron-packager": "^17.1.2"
   },
   "build": {
     "appId": "com.imprintek.app",
     "productName": "ImprinTek",
     "directories": {
-      "output": "dist"
+      "output": "dist-win10"
     },
     "files": [
       "index.html",
       "main.js",
       "preload.js",
+      "db.js",
       "package.json"
     ],
     "win": {

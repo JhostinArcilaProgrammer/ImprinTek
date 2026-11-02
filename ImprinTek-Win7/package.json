@@ -1,0 +1,86 @@
+{
+  "name": "imprintek-win7",
+  "version": "1.0.1",
+  "description": "Versión compatible con Windows 7.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:windows": "electron-builder --win nsis"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "electron-updater": "^4.6.5",
+    "sql.js": "^1.15.1"
+  },
+  "devDependencies": {
+    "electron": "^13.6.9",
+    "electron-builder": "^23.0.0",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.imprintek.app",
+    "productName": "ImprinTek",
+    "directories": {
+      "output": "dist-win7"
+    },
+    "files": [
+      "index.html",
+      "main.js",
+      "preload.js",
+      "db.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "fileAssociations": [
+        {
+          "ext": "jpg",
+          "name": "JPEG Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "jpeg",
+          "name": "JPEG Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "png",
+          "name": "PNG Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "bmp",
+          "name": "Bitmap Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "gif",
+          "name": "GIF Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "webp",
+          "name": "WebP Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "tif",
+          "name": "TIFF Image",
+          "description": "Imagen para ImprinTek"
+        },
+        {
+          "ext": "tiff",
+          "name": "TIFF Image",
+          "description": "Imagen para ImprinTek"
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}
